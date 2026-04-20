@@ -1,6 +1,7 @@
 <?php
 
 use App\Domains\Settings\ManageUsers\Api\Controllers\UserController;
+use App\Domains\Vault\ManageVault\Api\Controllers\VaultContactApiController;
 use App\Domains\Vault\ManageVault\Api\Controllers\VaultController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,4 +23,7 @@ Route::middleware('auth:sanctum')->name('api.')->group(function () {
 
     // vaults
     Route::apiResource('vaults', VaultController::class);
+
+    // contacts
+    Route::apiResource('vaults.contacts', VaultContactApiController::class);
 });
