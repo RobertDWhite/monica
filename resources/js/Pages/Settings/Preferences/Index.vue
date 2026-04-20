@@ -41,6 +41,8 @@
 
         <date-format :data="data.date_format" />
 
+        <time-format :data="data.time_format" />
+
         <number-format :data="data.number_format" />
 
         <distance-format :data="data.distance_format" />
@@ -58,6 +60,7 @@ import { Link } from '@inertiajs/vue3';
 import Layout from '@/Layouts/Layout.vue';
 import NameOrder from '@/Pages/Settings/Preferences/Partials/NameOrder.vue';
 import DateFormat from '@/Pages/Settings/Preferences/Partials/DateFormat.vue';
+import TimeFormat from '@/Pages/Settings/Preferences/Partials/TimeFormat.vue';
 import NumberFormat from '@/Pages/Settings/Preferences/Partials/NumberFormat.vue';
 import DistanceFormat from '@/Pages/Settings/Preferences/Partials/DistanceFormat.vue';
 import Timezone from '@/Pages/Settings/Preferences/Partials/Timezone.vue';
@@ -71,6 +74,7 @@ export default {
     Layout,
     NameOrder,
     DateFormat,
+    TimeFormat,
     Timezone,
     NumberFormat,
     DistanceFormat,

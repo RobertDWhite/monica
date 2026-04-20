@@ -34,7 +34,7 @@ services:
     <<: *app
     command: 'php artisan schedule:run'
   mariadb:
-    image: 'mariadb:10'
+    image: 'mariadb:10.11'
     ports:
       - '${FORWARD_DB_PORT:-3306}:3306'
     environment:

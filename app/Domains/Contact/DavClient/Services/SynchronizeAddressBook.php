@@ -64,7 +64,5 @@ class SynchronizeAddressBook extends BaseService
         if ($this->subscription->user->account_id !== $data['account_id']) {
             throw new ModelNotFoundException;
         }
-
-        // TODO: check if account is limited
     }
 }

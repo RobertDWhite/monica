@@ -31,6 +31,7 @@ class ContactReminder extends Model
      */
     protected $fillable = [
         'contact_id',
+        'contact_important_date_id',
         'label',
         'day',
         'month',
@@ -58,6 +59,14 @@ class ContactReminder extends Model
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<\App\Models\ContactImportantDate, $this>
+     */
+    public function contactImportantDate(): BelongsTo
+    {
+        return $this->belongsTo(ContactImportantDate::class);
     }
 
     /**

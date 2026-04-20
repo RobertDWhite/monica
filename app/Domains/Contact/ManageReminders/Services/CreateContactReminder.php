@@ -23,6 +23,7 @@ class CreateContactReminder extends BaseService implements ServiceInterface
             'vault_id' => 'required|uuid|exists:vaults,id',
             'author_id' => 'required|uuid|exists:users,id',
             'contact_id' => 'required|uuid|exists:contacts,id',
+            'contact_important_date_id' => 'nullable|integer|exists:contact_important_dates,id',
             'label' => 'required|string|max:255',
             'day' => 'nullable|integer',
             'month' => 'nullable|integer',
@@ -64,6 +65,7 @@ class CreateContactReminder extends BaseService implements ServiceInterface
     {
         $this->reminder = ContactReminder::create([
             'contact_id' => $this->data['contact_id'],
+            'contact_important_date_id' => $this->valueOrNull($this->data, 'contact_important_date_id'),
             'label' => $this->data['label'],
             'day' => $this->valueOrNull($this->data, 'day'),
             'month' => $this->valueOrNull($this->data, 'month'),

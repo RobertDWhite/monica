@@ -1,6 +1,7 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
+import { trans } from 'laravel-vue-i18n';
 import PrettyButton from '@/Shared/Form/PrettyButton.vue';
 import PrettySpan from '@/Shared/Form/PrettySpan.vue';
 import TextInput from '@/Shared/Form/TextInput.vue';
@@ -40,6 +41,25 @@ const form = useForm({
   postal_code: '',
   country: '',
   errors: [],
+});
+
+// Countries where the subdivision is called "State" rather than "Province".
+// Matches case-insensitively against the free-text country field.
+const STATE_COUNTRIES = new Set([
+  'united states', 'united states of america', 'us', 'usa', 'america',
+  'australia', 'au',
+  'india', 'bharat',
+  'brazil', 'brasil', 'br',
+  'mexico', 'méxico', 'mx',
+  'germany', 'deutschland',
+  'malaysia',
+  'nigeria',
+  'venezuela',
+]);
+
+const provinceLabel = computed(() => {
+  const country = (form.country ?? '').toLowerCase().trim();
+  return STATE_COUNTRIES.has(country) ? trans('State') : trans('Province');
 });
 
 const showCreateAddressModal = () => {
@@ -293,7 +313,7 @@ const destroy = () => {
           <div class="grid grid-cols-3 gap-4 border-b border-gray-200 p-5 dark:border-gray-700">
             <text-input
               v-model="form.province"
-              :label="$t('Province')"
+              :label="provinceLabel"
               :type="'text'"
               :autofocus="true"
               :input-class="'w-full me-2'"
@@ -454,7 +474,7 @@ const destroy = () => {
               <div class="grid grid-cols-3 gap-4 border-b border-gray-200 p-5 dark:border-gray-700">
                 <text-input
                   v-model="form.province"
-                  :label="$t('Province')"
+                  :label="provinceLabel"
                   :type="'text'"
                   :autofocus="true"
                   :input-class="'w-full me-2'"
@@ -635,7 +655,7 @@ const destroy = () => {
               <div class="grid grid-cols-3 gap-4 border-b border-gray-200 p-5 dark:border-gray-700">
                 <text-input
                   v-model="form.province"
-                  :label="$t('Province')"
+                  :label="provinceLabel"
                   :type="'text'"
                   :autofocus="true"
                   :input-class="'w-full me-2'"

@@ -54,6 +54,7 @@ class DestroyContactImportantDate extends QueuableService implements ServiceInte
         $this->date = $this->contact->importantDates()
             ->findOrFail($data['contact_important_date_id']);
 
+        $this->date->reminders()->delete();
         $this->date->delete();
 
         $this->contact->last_updated_at = Carbon::now();

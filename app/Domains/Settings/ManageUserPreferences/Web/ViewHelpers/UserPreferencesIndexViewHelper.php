@@ -2,6 +2,7 @@
 
 namespace App\Domains\Settings\ManageUserPreferences\Web\ViewHelpers;
 
+use App\Helpers\DateHelper;
 use App\Helpers\MonetaryNumberHelper;
 use App\Helpers\NameHelper;
 use App\Models\Contact;
@@ -16,6 +17,7 @@ class UserPreferencesIndexViewHelper
             'help' => self::dtoHelp($user),
             'name_order' => self::dtoNameOrder($user),
             'date_format' => self::dtoDateFormat($user),
+            'time_format' => self::dtoTimeFormat($user),
             'timezone' => self::dtoTimezone($user),
             'number_format' => self::dtoNumberFormat($user),
             'distance_format' => self::dtoDistanceFormat($user),
@@ -91,6 +93,32 @@ class UserPreferencesIndexViewHelper
             'human_date_format' => Carbon::now()->isoFormat($user->date_format),
             'url' => [
                 'store' => route('settings.preferences.date.store'),
+            ],
+        ];
+    }
+
+    public static function dtoTimeFormat(User $user): array
+    {
+        $now = Carbon::now();
+        $collection = collect([
+            [
+                'id' => 1,
+                'format' => User::TIME_FORMAT_12H,
+                'value' => $now->format('g:i A'),
+            ],
+            [
+                'id' => 2,
+                'format' => User::TIME_FORMAT_24H,
+                'value' => $now->format('H:i'),
+            ],
+        ]);
+
+        return [
+            'formats' => $collection,
+            'time_format' => $user->time_format,
+            'human_time' => DateHelper::formatTimeForUser($now, $user),
+            'url' => [
+                'store' => route('settings.preferences.time.store'),
             ],
         ];
     }

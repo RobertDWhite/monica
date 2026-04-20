@@ -179,6 +179,6 @@ Monica makes use of numerous open-source projects and we are deeply grateful. We
 
 ## License
 
-Copyright © 2016–2023
+Copyright © 2016–2026
 
 Licensed under [the AGPL License](/LICENSE.md).

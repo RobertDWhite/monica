@@ -4,6 +4,7 @@ namespace App\Helpers;
 
 use App\Models\User;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
 class DateHelper
@@ -15,6 +16,17 @@ class DateHelper
     public static function format(Carbon $date, User $user): string
     {
         return $date->isoFormat($user->date_format);
+    }
+
+    /**
+     * Format a time value according to the user's 12h/24h preference.
+     * Returns a string like "9:05 AM" or "09:05".
+     */
+    public static function formatTimeForUser(CarbonInterface $time, User $user): string
+    {
+        return $user->time_format === User::TIME_FORMAT_24H
+            ? $time->format('H:i')
+            : $time->format('g:i A');
     }
 
     /**

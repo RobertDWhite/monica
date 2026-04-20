@@ -68,6 +68,13 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
     public const DISTANCE_UNIT_KM = 'km';
 
     /**
+     * Possible time formats.
+     */
+    public const TIME_FORMAT_12H = '12h';
+
+    public const TIME_FORMAT_24H = '24h';
+
+    /**
      * Possible contact sort order.
      */
     public const CONTACT_SORT_ORDER_ASC = 'asc';
@@ -93,6 +100,7 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
         'invitation_accepted_at',
         'name_order',
         'date_format',
+        'time_format',
         'number_format',
         'distance_format',
         'timezone',

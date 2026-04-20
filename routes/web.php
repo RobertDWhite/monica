@@ -93,6 +93,7 @@ use App\Domains\Settings\ManageUserPreferences\Web\Controllers\PreferencesLocale
 use App\Domains\Settings\ManageUserPreferences\Web\Controllers\PreferencesMapsPreferenceController;
 use App\Domains\Settings\ManageUserPreferences\Web\Controllers\PreferencesNameOrderController;
 use App\Domains\Settings\ManageUserPreferences\Web\Controllers\PreferencesNumberFormatController;
+use App\Domains\Settings\ManageUserPreferences\Web\Controllers\PreferencesTimeFormatController;
 use App\Domains\Settings\ManageUserPreferences\Web\Controllers\PreferencesTimezoneController;
 use App\Domains\Settings\ManageUsers\Web\Controllers\UserController;
 use App\Domains\Vault\ManageCalendar\Web\Controllers\VaultCalendarController;
@@ -554,6 +555,7 @@ Route::middleware([
             Route::get('', [PreferencesController::class, 'index'])->name('index');
             Route::post('name', [PreferencesNameOrderController::class, 'store'])->name('name.store');
             Route::post('date', [PreferencesDateFormatController::class, 'store'])->name('date.store');
+            Route::post('time', [PreferencesTimeFormatController::class, 'store'])->name('time.store');
             Route::post('timezone', [PreferencesTimezoneController::class, 'store'])->name('timezone.store');
             Route::post('number', [PreferencesNumberFormatController::class, 'store'])->name('number.store');
             Route::post('distance', [PreferencesDistanceFormatController::class, 'store'])->name('distance.store');
