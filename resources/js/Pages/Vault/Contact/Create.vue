@@ -130,17 +130,6 @@
               :dropdown-class="'block w-full'"
               :label="$t('Gender')" />
 
-            <!-- pronouns -->
-            <dropdown
-              v-if="showPronounField"
-              v-model="form.pronoun_id"
-              :data="data.pronouns"
-              :required="false"
-              :class="'mb-5'"
-              :placeholder="$t('Choose a value')"
-              :dropdown-class="'block w-full'"
-              :label="$t('Pronoun')" />
-
             <!-- templates -->
             <dropdown
               v-if="showTemplateField"
@@ -189,12 +178,6 @@
                 class="mb-2 me-2 flex cursor-pointer flex-wrap rounded-lg border bg-slate-200 px-1 py-1 hover:bg-slate-300 dark:bg-slate-500 dark:text-gray-900 dark:text-white"
                 @click="displayGenderField">
                 {{ $t('+ gender') }}
-              </span>
-              <span
-                v-if="data.pronouns.length > 0 && !showPronounField"
-                class="mb-2 me-2 flex cursor-pointer flex-wrap rounded-lg border bg-slate-200 px-1 py-1 hover:bg-slate-300 dark:bg-slate-500 dark:text-gray-900 dark:text-white"
-                @click="displayPronounField">
-                {{ $t('+ pronoun') }}
               </span>
               <span
                 v-if="data.templates.length > 0 && !showTemplateField"
@@ -259,7 +242,6 @@ export default {
       showNicknameField: false,
       showMaidenNameField: false,
       showGenderField: false,
-      showPronounField: false,
       showTemplateField: false,
       showSuffixField: false,
       showPrefixField: false,
@@ -272,7 +254,6 @@ export default {
         suffix: '',
         maiden_name: '',
         gender_id: '',
-        pronoun_id: '',
         template_id: '',
         errors: [],
       },
@@ -294,10 +275,6 @@ export default {
 
     displayGenderField() {
       this.showGenderField = true;
-    },
-
-    displayPronounField() {
-      this.showPronounField = true;
     },
 
     displayTemplateField() {

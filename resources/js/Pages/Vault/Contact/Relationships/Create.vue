@@ -271,17 +271,6 @@
                 :dropdown-class="'block w-full'"
                 :label="$t('Gender')" />
 
-              <!-- pronouns -->
-              <dropdown
-                v-if="showPronounField"
-                v-model="form.pronoun_id"
-                :data="data.pronouns"
-                :required="false"
-                :class="'mb-5'"
-                :placeholder="$t('Choose a value')"
-                :dropdown-class="'block w-full'"
-                :label="$t('Pronoun')" />
-
               <!-- other fields -->
               <div class="flex flex-wrap text-xs">
                 <span
@@ -289,12 +278,6 @@
                   class="mb-2 me-2 flex cursor-pointer flex-wrap rounded-lg border bg-slate-200 px-1 py-1 hover:bg-slate-300 dark:bg-slate-500 dark:text-gray-900"
                   @click="displayGenderField">
                   {{ $t('+ gender') }}
-                </span>
-                <span
-                  v-if="data.pronouns.length > 0 && !showPronounField"
-                  class="mb-2 me-2 flex cursor-pointer flex-wrap rounded-lg border bg-slate-200 px-1 py-1 hover:bg-slate-300 dark:bg-slate-500 dark:text-gray-900"
-                  @click="displayPronounField">
-                  {{ $t('+ pronoun') }}
                 </span>
               </div>
             </div>
@@ -377,7 +360,6 @@ export default {
       showNicknameField: false,
       showMaidenNameField: false,
       showGenderField: false,
-      showPronounField: false,
       fromRelationship: '',
       toRelationship: '',
       form: {
@@ -391,7 +373,6 @@ export default {
         nickname: '',
         maiden_name: '',
         gender_id: '',
-        pronoun_id: '',
         errors: [],
       },
     };
@@ -439,7 +420,6 @@ export default {
       this.form.nickname = '';
       this.form.maiden_name = '';
       this.form.gender_id = '';
-      this.form.pronoun_id = '';
       this.showContactName = false;
       this.showMoreContactOptions = false;
     },
@@ -468,10 +448,6 @@ export default {
 
     displayGenderField() {
       this.showGenderField = true;
-    },
-
-    displayPronounField() {
-      this.showPronounField = true;
     },
 
     toggle() {

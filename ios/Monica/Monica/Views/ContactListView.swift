@@ -11,7 +11,7 @@ struct ContactListView: View {
     @State private var showAddContact = false
 
     private var api: MonicaAPI {
-        MonicaAPI(baseURL: appState.serverURL, token: appState.apiToken)
+        MonicaAPI(baseURL: appState.serverURL, token: appState.bearerToken)
     }
 
     private var filtered: [Contact] {

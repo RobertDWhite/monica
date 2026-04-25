@@ -19,7 +19,7 @@ struct ContactDetailView: View {
     }
 
     private var api: MonicaAPI {
-        MonicaAPI(baseURL: appState.serverURL, token: appState.apiToken)
+        MonicaAPI(baseURL: appState.serverURL, token: appState.bearerToken)
     }
 
     var body: some View {

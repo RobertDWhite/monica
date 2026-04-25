@@ -63,12 +63,6 @@
               </InertiaLink>
             </li>
             <li class="mb-2 flex">
-              <span class="me-2">👩‍🔬</span>
-              <InertiaLink :href="data.url.manage_pronouns" class="text-blue-500 hover:underline">
-                {{ $t('Manage pronouns') }}
-              </InertiaLink>
-            </li>
-            <li class="mb-2 flex">
               <span class="me-2">🚻</span>
               <InertiaLink :href="data.url.manage_genders" class="text-blue-500 hover:underline">
                 {{ $t('Manage genders') }}

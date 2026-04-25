@@ -3,7 +3,6 @@
 namespace App\Domains\Contact\ManageContact\Web\ViewHelpers;
 
 use App\Models\Gender;
-use App\Models\Pronoun;
 use App\Models\Template;
 use App\Models\Vault;
 
@@ -21,14 +20,6 @@ class ContactCreateViewHelper
                 'name' => $gender->name,
             ]);
 
-        $pronouns = $account->pronouns()
-            ->get()
-            ->sortByCollator('name')
-            ->map(fn (Pronoun $pronoun) => [
-                'id' => $pronoun->id,
-                'name' => $pronoun->name,
-            ]);
-
         $templates = $account->templates
             ->sortByCollator('name')
             ->map(fn (Template $template) => [
@@ -39,7 +30,6 @@ class ContactCreateViewHelper
 
         return [
             'genders' => $genders,
-            'pronouns' => $pronouns,
             'templates' => $templates,
             'url' => [
                 'store' => route('contact.store', [

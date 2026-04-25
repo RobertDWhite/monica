@@ -115,16 +115,6 @@
               :dropdown-class="'block w-full'"
               :label="$t('Gender')" />
 
-            <!-- pronouns -->
-            <dropdown
-              v-model="form.pronoun_id"
-              :data="data.pronouns"
-              :required="false"
-              :class="'mb-5'"
-              :placeholder="$t('Choose a value')"
-              :dropdown-class="'block w-full'"
-              :label="$t('Pronoun')" />
-
             <!-- prefix -->
             <text-input
               :id="'prefix'"
@@ -204,7 +194,6 @@ export default {
         prefix: '',
         suffix: '',
         gender_id: '',
-        pronoun_id: '',
         errors: [],
       },
     };
@@ -217,7 +206,6 @@ export default {
     this.form.nickname = this.data.contact.nickname;
     this.form.maiden_name = this.data.contact.maiden_name;
     this.form.gender_id = this.data.contact.gender_id;
-    this.form.pronoun_id = this.data.contact.pronoun_id;
     this.form.suffix = this.data.contact.suffix;
     this.form.prefix = this.data.contact.prefix;
   },

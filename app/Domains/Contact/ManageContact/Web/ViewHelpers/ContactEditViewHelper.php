@@ -21,15 +21,6 @@ class ContactEditViewHelper
             ];
         });
 
-        $pronouns = $account->pronouns()->orderBy('name', 'asc')->get();
-        $pronounCollection = $pronouns->map(function ($pronoun) use ($contact) {
-            return [
-                'id' => $pronoun->id,
-                'name' => $pronoun->name,
-                'selected' => $pronoun->id === $contact->pronoun_id ? true : false,
-            ];
-        });
-
         return [
             'contact' => [
                 'id' => $contact->id,
@@ -40,12 +31,10 @@ class ContactEditViewHelper
                 'nickname' => $contact->nickname,
                 'maiden_name' => $contact->maiden_name,
                 'gender_id' => $contact->gender_id,
-                'pronoun_id' => $contact->pronoun_id,
                 'prefix' => $contact->prefix,
                 'suffix' => $contact->suffix,
             ],
             'genders' => $genderCollection,
-            'pronouns' => $pronounCollection,
             'url' => [
                 'update' => route('contact.update', [
                     'vault' => $vault->id,

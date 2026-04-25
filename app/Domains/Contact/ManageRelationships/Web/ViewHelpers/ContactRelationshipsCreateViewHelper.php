@@ -4,7 +4,6 @@ namespace App\Domains\Contact\ManageRelationships\Web\ViewHelpers;
 
 use App\Models\Contact;
 use App\Models\Gender;
-use App\Models\Pronoun;
 use App\Models\RelationshipGroupType;
 use App\Models\RelationshipType;
 use App\Models\User;
@@ -22,14 +21,6 @@ class ContactRelationshipsCreateViewHelper
             ->map(fn (Gender $gender) => [
                 'id' => $gender->id,
                 'name' => $gender->name,
-            ]);
-
-        $pronouns = $account->pronouns()
-            ->get()
-            ->sortByCollator('name')
-            ->map(fn (Pronoun $pronoun) => [
-                'id' => $pronoun->id,
-                'name' => $pronoun->name,
             ]);
 
         $groups = $account->relationshipGroupTypes()
@@ -62,7 +53,6 @@ class ContactRelationshipsCreateViewHelper
                 'avatar' => $contact->avatar,
             ],
             'genders' => $genders,
-            'pronouns' => $pronouns,
             'relationship_group_types' => $relationshipTypeGroupsCollection,
             'relationship_types' => $relationshipTypesCollection,
             'url' => [

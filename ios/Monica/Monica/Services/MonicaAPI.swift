@@ -10,7 +10,7 @@ enum APIError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidURL: return "Invalid server URL."
-        case .unauthorized: return "Invalid API token. Check your settings."
+        case .unauthorized: return "Authentication failed. Check your credentials in Settings."
         case .serverError(let code): return "Server error (\(code))."
         case .decodingError: return "Unexpected response from server."
         case .networkError(let err): return err.localizedDescription
@@ -79,7 +79,9 @@ final class MonicaAPI {
         } catch {
             throw APIError.networkError(error)
         }
-        guard let http = response as? HTTPURLResponse else { throw APIError.networkError(URLError(.badServerResponse)) }
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.networkError(URLError(.badServerResponse))
+        }
         switch http.statusCode {
         case 200...299: return data
         case 401: throw APIError.unauthorized
@@ -90,33 +92,24 @@ final class MonicaAPI {
     private func get<T: Decodable>(_ path: String) async throws -> T {
         let req = try request(for: path, method: "GET")
         let data = try await execute(req)
-        do {
-            return try JSONDecoder().decode(T.self, from: data)
-        } catch {
-            throw APIError.decodingError(error)
-        }
+        do { return try JSONDecoder().decode(T.self, from: data) }
+        catch { throw APIError.decodingError(error) }
     }
 
     private func post<B: Encodable, T: Decodable>(_ path: String, body: B) async throws -> T {
         var req = try request(for: path, method: "POST")
         req.httpBody = try JSONEncoder().encode(body)
         let data = try await execute(req)
-        do {
-            return try JSONDecoder().decode(T.self, from: data)
-        } catch {
-            throw APIError.decodingError(error)
-        }
+        do { return try JSONDecoder().decode(T.self, from: data) }
+        catch { throw APIError.decodingError(error) }
     }
 
     private func put<B: Encodable, T: Decodable>(_ path: String, body: B) async throws -> T {
         var req = try request(for: path, method: "PUT")
         req.httpBody = try JSONEncoder().encode(body)
         let data = try await execute(req)
-        do {
-            return try JSONDecoder().decode(T.self, from: data)
-        } catch {
-            throw APIError.decodingError(error)
-        }
+        do { return try JSONDecoder().decode(T.self, from: data) }
+        catch { throw APIError.decodingError(error) }
     }
 
     private func delete(_ path: String) async throws {
