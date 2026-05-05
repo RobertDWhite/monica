@@ -72,6 +72,10 @@ class ContactShowViewHelper
                     'vault' => $contact->vault_id,
                     'contact' => $contact->id,
                 ]),
+                'upload_avatar_local' => route('contact.avatar.local.store', [
+                    'vault' => $contact->vault_id,
+                    'contact' => $contact->id,
+                ]),
                 'destroy_avatar' => route('contact.avatar.destroy', [
                     'vault' => $contact->vault_id,
                     'contact' => $contact->id,
@@ -123,6 +127,10 @@ class ContactShowViewHelper
                     'contact' => $contact->id,
                 ]),
                 'update_avatar' => route('contact.avatar.update', [
+                    'vault' => $contact->vault_id,
+                    'contact' => $contact->id,
+                ]),
+                'upload_avatar_local' => route('contact.avatar.local.store', [
                     'vault' => $contact->vault_id,
                     'contact' => $contact->id,
                 ]),

@@ -4,12 +4,12 @@ struct OnboardingView: View {
     @Environment(AppState.self) private var appState
 
     @State private var serverURL = ""
-    @State private var selectedMethod: AuthMethod = .apiToken
+    @State private var useOAuth = false
 
-    // API token fields
+    // Direct token
     @State private var apiToken = ""
 
-    // OAuth fields
+    // OAuth
     @State private var oauthIssuerURL = ""
     @State private var oauthClientID = ""
 
@@ -33,27 +33,21 @@ struct OnboardingView: View {
                     .padding(.vertical, 8)
                 }
 
-                Section("Monica Server") {
+                Section("Monica Server URL") {
                     TextField("https://monica.example.com", text: $serverURL)
                         .keyboardType(.URL)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                 }
 
-                Section("Authentication Method") {
-                    Picker("Method", selection: $selectedMethod) {
-                        Text("API Token").tag(AuthMethod.apiToken)
-                        Text("OAuth / SSO").tag(AuthMethod.oauth)
-                    }
-                    .pickerStyle(.segmented)
-                    .listRowBackground(Color.clear)
+                Section {
+                    Toggle("Behind Authentik or another OAuth provider", isOn: $useOAuth)
                 }
 
-                switch selectedMethod {
-                case .apiToken:
-                    apiTokenSection
-                case .oauth:
+                if useOAuth {
                     oauthSection
+                } else {
+                    tokenSection
                 }
 
                 if let errorMessage {
@@ -70,10 +64,10 @@ struct OnboardingView: View {
                         if isConnecting {
                             HStack {
                                 ProgressView()
-                                Text(selectedMethod == .oauth ? "Opening browser…" : "Connecting…")
+                                Text(useOAuth ? "Signing in…" : "Connecting…")
                             }
                         } else {
-                            Text(selectedMethod == .oauth ? "Sign In with OAuth" : "Connect")
+                            Text(useOAuth ? "Sign In via OAuth" : "Connect")
                                 .frame(maxWidth: .infinity)
                         }
                     }
@@ -85,14 +79,15 @@ struct OnboardingView: View {
     }
 
     @ViewBuilder
-    private var apiTokenSection: some View {
+    private var tokenSection: some View {
         Section("API Token") {
-            SecureField("Paste your token here", text: $apiToken)
+            SecureField("Paste your API token", text: $apiToken)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
-            if !serverURL.isEmpty, let tokenURL = URL(string: serverURL.trimmingCharacters(in: .init(charactersIn: "/")) + "/tokens") {
-                Link("Generate a token in Monica → Settings → API Tokens",
-                     destination: tokenURL)
+
+            if !serverURL.isEmpty,
+               let url = URL(string: serverURL.trimmingCharacters(in: .init(charactersIn: "/")) + "/tokens") {
+                Link("Open Monica → Settings → API Tokens", destination: url)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -102,7 +97,7 @@ struct OnboardingView: View {
     @ViewBuilder
     private var oauthSection: some View {
         Section("OAuth / OIDC Provider") {
-            TextField("https://auth.example.com/application/o/monica", text: $oauthIssuerURL)
+            TextField("Issuer URL", text: $oauthIssuerURL)
                 .keyboardType(.URL)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
@@ -113,9 +108,10 @@ struct OnboardingView: View {
 
         Section {
             VStack(alignment: .leading, spacing: 6) {
-                Label("Authentik setup", systemImage: "info.circle")
-                    .font(.subheadline.bold())
-                Text("In Authentik, create an OAuth2/OIDC provider with:\n• Redirect URI: **monica://oauth/callback**\n• Grant type: Authorization Code\n• PKCE: enabled\n\nThe issuer URL is your provider's base URL (e.g. the URL shown in Authentik under the provider's OpenID Configuration).")
+                Text("The app will sign you in through your provider, then automatically generate a Monica API token. Your provider must set `OIDC_ISSUER` on the Monica server.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                Text("Authentik: use the application's OpenID Configuration issuer URL. Set the redirect URI to **monica://oauth/callback** and enable PKCE.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -125,21 +121,20 @@ struct OnboardingView: View {
 
     private var canConnect: Bool {
         guard !serverURL.isEmpty else { return false }
-        switch selectedMethod {
-        case .apiToken: return !apiToken.isEmpty
-        case .oauth: return !oauthIssuerURL.isEmpty && !oauthClientID.isEmpty
+        if useOAuth {
+            return !oauthIssuerURL.isEmpty && !oauthClientID.isEmpty
         }
+        return !apiToken.isEmpty
     }
 
     private func connect() async {
         isConnecting = true
         errorMessage = nil
 
-        switch selectedMethod {
-        case .apiToken:
+        if useOAuth {
+            await connectViaOAuth()
+        } else {
             await connectWithToken()
-        case .oauth:
-            await connectWithOAuth()
         }
 
         isConnecting = false
@@ -151,27 +146,26 @@ struct OnboardingView: View {
             _ = try await api.vaults()
             appState.serverURL = serverURL
             appState.apiToken = apiToken
-            appState.authMethod = .apiToken
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
-    private func connectWithOAuth() async {
+    private func connectViaOAuth() async {
         do {
-            let tokens = try await oauthManager.authorize(
+            let monicaToken = try await oauthManager.loginAndGetMonicaToken(
                 issuerURL: oauthIssuerURL,
-                clientID: oauthClientID
+                clientID: oauthClientID,
+                serverURL: serverURL
             )
-            // Validate the token works against Monica before saving
-            let api = MonicaAPI(baseURL: serverURL, token: tokens.accessToken)
+            // Verify it works
+            let api = MonicaAPI(baseURL: serverURL, token: monicaToken)
             _ = try await api.vaults()
 
             appState.serverURL = serverURL
+            appState.apiToken = monicaToken
             appState.oauthIssuerURL = oauthIssuerURL
             appState.oauthClientID = oauthClientID
-            appState.authMethod = .oauth
-            appState.applyOAuthTokens(tokens)
         } catch {
             errorMessage = error.localizedDescription
         }

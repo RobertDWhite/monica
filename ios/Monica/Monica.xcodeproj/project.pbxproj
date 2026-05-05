@@ -20,6 +20,7 @@
 		B100000B /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B200000B /* KeychainHelper.swift */; };
 		B100000C /* OAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B200000C /* OAuthManager.swift */; };
 		B100000D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B200000D /* SettingsView.swift */; };
+		B100000E /* ContactAvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B200000E /* ContactAvatarView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -36,6 +37,7 @@
 		B200000B /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		B200000C /* OAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OAuthManager.swift; sourceTree = "<group>"; };
 		B200000D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		B200000E /* ContactAvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactAvatarView.swift; sourceTree = "<group>"; };
 		B300FFFE /* Monica.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Monica.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -98,6 +100,7 @@
 				B2000009 /* ContactDetailView.swift */,
 				B200000A /* AddEditContactView.swift */,
 				B200000D /* SettingsView.swift */,
+				B200000E /* ContactAvatarView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -191,6 +194,7 @@
 				B100000B /* KeychainHelper.swift in Sources */,
 				B100000C /* OAuthManager.swift in Sources */,
 				B100000D /* SettingsView.swift in Sources */,
+				B100000E /* ContactAvatarView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

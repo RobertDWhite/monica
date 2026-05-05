@@ -12,20 +12,10 @@ struct SettingsView: View {
                     LabeledContent("URL", value: appState.serverURL)
                 }
 
-                Section("Authentication") {
-                    LabeledContent("Method") {
-                        Text(appState.authMethod == .oauth ? "OAuth / SSO" : "API Token")
-                            .foregroundStyle(.secondary)
-                    }
-                    if appState.authMethod == .oauth {
+                if appState.isOAuthConfigured {
+                    Section("OAuth") {
                         LabeledContent("Issuer", value: appState.oauthIssuerURL)
                         LabeledContent("Client ID", value: appState.oauthClientID)
-                        if let expiry = appState.oauthTokenExpiry {
-                            LabeledContent("Token expires") {
-                                Text(expiry, style: .relative)
-                                    .foregroundStyle(appState.oauthTokenIsExpired ? .red : .secondary)
-                            }
-                        }
                     }
                 }
 

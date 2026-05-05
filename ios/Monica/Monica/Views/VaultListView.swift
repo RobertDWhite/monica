@@ -9,7 +9,7 @@ struct VaultListView: View {
     @State private var showSettings = false
 
     private var api: MonicaAPI {
-        MonicaAPI(baseURL: appState.serverURL, token: appState.bearerToken)
+        MonicaAPI(baseURL: appState.serverURL, token: appState.apiToken)
     }
 
     var body: some View {
@@ -52,9 +52,7 @@ struct VaultListView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showSettings = true
-                    } label: {
+                    Button { showSettings = true } label: {
                         Image(systemName: "gear")
                     }
                 }
@@ -67,7 +65,6 @@ struct VaultListView: View {
     }
 
     private func load() async {
-        guard await refreshTokenIfNeeded() else { return }
         isLoading = true
         errorMessage = nil
         do {
@@ -78,11 +75,5 @@ struct VaultListView: View {
             errorMessage = error.localizedDescription
         }
         isLoading = false
-    }
-
-    private func refreshTokenIfNeeded() async -> Bool {
-        let ok = await appState.refreshOAuthTokenIfNeeded()
-        if !ok { appState.signOut() }
-        return ok
     }
 }

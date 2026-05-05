@@ -7,23 +7,22 @@ enum OAuthError: LocalizedError {
     case userCancelled
     case invalidCallback
     case tokenExchangeFailed(String)
-    case refreshFailed
+    case monicaTokenExchangeFailed(String)
 
     var errorDescription: String? {
         switch self {
-        case .discoveryFailed: return "Could not reach the OAuth provider. Check the issuer URL."
-        case .userCancelled: return "Login was cancelled."
-        case .invalidCallback: return "OAuth provider returned an unexpected response."
-        case .tokenExchangeFailed(let msg): return "Token exchange failed: \(msg)"
-        case .refreshFailed: return "Session expired. Please sign in again."
+        case .discoveryFailed:
+            return "Could not reach the OAuth provider. Check the issuer URL."
+        case .userCancelled:
+            return "Login was cancelled."
+        case .invalidCallback:
+            return "OAuth provider returned an unexpected response."
+        case .tokenExchangeFailed(let msg):
+            return "OAuth token exchange failed: \(msg)"
+        case .monicaTokenExchangeFailed(let msg):
+            return "Could not get Monica token: \(msg)"
         }
     }
-}
-
-struct OAuthTokens {
-    let accessToken: String
-    let refreshToken: String?
-    let expiresIn: Int?
 }
 
 @MainActor
@@ -40,22 +39,26 @@ final class OAuthManager: NSObject {
         }
     }
 
-    private struct TokenResponse: Decodable {
+    private struct OAuthTokenResponse: Decodable {
         let accessToken: String
         let refreshToken: String?
-        let expiresIn: Int?
         let error: String?
         let errorDescription: String?
         enum CodingKeys: String, CodingKey {
             case accessToken = "access_token"
             case refreshToken = "refresh_token"
-            case expiresIn = "expires_in"
             case error
             case errorDescription = "error_description"
         }
     }
 
-    func authorize(issuerURL: String, clientID: String) async throws -> OAuthTokens {
+    private struct MonicaTokenResponse: Decodable {
+        let token: String?
+        let error: [String: String]?
+    }
+
+    /// Full flow: OIDC PKCE → exchange Authentik access token → Monica Sanctum token.
+    func loginAndGetMonicaToken(issuerURL: String, clientID: String, serverURL: String) async throws -> String {
         let config = try await discover(issuerURL: issuerURL)
         let (verifier, challenge) = makePKCE()
         let state = UUID().uuidString
@@ -72,45 +75,25 @@ final class OAuthManager: NSObject {
         ]
 
         let callbackURL = try await openBrowser(url: comps.url!)
+
         guard let callbackComps = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
               let code = callbackComps.queryItems?.first(where: { $0.name == "code" })?.value
         else { throw OAuthError.invalidCallback }
 
-        return try await exchangeCode(
+        let oauthTokens = try await exchangeCode(
             code,
             verifier: verifier,
             tokenEndpoint: config.tokenEndpoint,
             clientID: clientID
         )
-    }
 
-    func refresh(refreshToken: String, issuerURL: String, clientID: String) async throws -> OAuthTokens {
-        let config = try await discover(issuerURL: issuerURL)
-        var req = URLRequest(url: URL(string: config.tokenEndpoint)!)
-        req.httpMethod = "POST"
-        req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        req.httpBody = formEncode([
-            "grant_type": "refresh_token",
-            "refresh_token": refreshToken,
-            "client_id": clientID,
-        ])
-
-        let (data, _) = try await URLSession.shared.data(for: req)
-        let tokenResponse = try JSONDecoder().decode(TokenResponse.self, from: data)
-
-        if let error = tokenResponse.error {
-            throw OAuthError.tokenExchangeFailed(tokenResponse.errorDescription ?? error)
-        }
-        guard !tokenResponse.accessToken.isEmpty else { throw OAuthError.refreshFailed }
-
-        return OAuthTokens(
-            accessToken: tokenResponse.accessToken,
-            refreshToken: tokenResponse.refreshToken,
-            expiresIn: tokenResponse.expiresIn
+        return try await exchangeForMonicaToken(
+            oauthAccessToken: oauthTokens.accessToken,
+            serverURL: serverURL
         )
     }
 
-    // MARK: - Helpers
+    // MARK: - Private helpers
 
     private func discover(issuerURL: String) async throws -> OIDCConfig {
         let trimmed = issuerURL.trimmingCharacters(in: .init(charactersIn: "/"))
@@ -157,7 +140,6 @@ final class OAuthManager: NSObject {
             session.prefersEphemeralWebBrowserSession = false
             session.presentationContextProvider = self
             session.start()
-            // Keep a strong reference for the duration of the session
             objc_setAssociatedObject(self, &AssociatedKey.session, session, .OBJC_ASSOCIATION_RETAIN)
         }
     }
@@ -167,7 +149,7 @@ final class OAuthManager: NSObject {
         verifier: String,
         tokenEndpoint: String,
         clientID: String
-    ) async throws -> OAuthTokens {
+    ) async throws -> OAuthTokenResponse {
         var req = URLRequest(url: URL(string: tokenEndpoint)!)
         req.httpMethod = "POST"
         req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
@@ -180,17 +162,40 @@ final class OAuthManager: NSObject {
         ])
 
         let (data, _) = try await URLSession.shared.data(for: req)
-        let tokenResponse = try JSONDecoder().decode(TokenResponse.self, from: data)
+        let response = try JSONDecoder().decode(OAuthTokenResponse.self, from: data)
 
-        if let error = tokenResponse.error {
-            throw OAuthError.tokenExchangeFailed(tokenResponse.errorDescription ?? error)
+        if let error = response.error {
+            throw OAuthError.tokenExchangeFailed(response.errorDescription ?? error)
         }
 
-        return OAuthTokens(
-            accessToken: tokenResponse.accessToken,
-            refreshToken: tokenResponse.refreshToken,
-            expiresIn: tokenResponse.expiresIn
-        )
+        return response
+    }
+
+    private func exchangeForMonicaToken(oauthAccessToken: String, serverURL: String) async throws -> String {
+        let base = serverURL.trimmingCharacters(in: .init(charactersIn: "/"))
+        guard let url = URL(string: base + "/api/auth/token") else {
+            throw OAuthError.monicaTokenExchangeFailed("Invalid server URL")
+        }
+
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("Bearer \(oauthAccessToken)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        let (data, response) = try await URLSession.shared.data(for: req)
+
+        guard let http = response as? HTTPURLResponse else {
+            throw OAuthError.monicaTokenExchangeFailed("No HTTP response")
+        }
+
+        let parsed = try? JSONDecoder().decode(MonicaTokenResponse.self, from: data)
+
+        guard http.statusCode == 200, let token = parsed?.token else {
+            let msg = parsed?.error?.values.first ?? "HTTP \(http.statusCode)"
+            throw OAuthError.monicaTokenExchangeFailed(msg)
+        }
+
+        return token
     }
 
     private func formEncode(_ params: [String: String]) -> Data {
@@ -205,10 +210,12 @@ final class OAuthManager: NSObject {
 
 extension OAuthManager: ASWebAuthenticationPresentationContextProviding {
     nonisolated func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .flatMap(\.windows)
-            .first(where: \.isKeyWindow) ?? ASPresentationAnchor()
+        DispatchQueue.main.sync {
+            UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap(\.windows)
+                .first(where: \.isKeyWindow) ?? ASPresentationAnchor()
+        }
     }
 }
 

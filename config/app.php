@@ -219,6 +219,9 @@ return [
         'X-SOCIAL-PROFILE' => [
             'name_translation_key' => trans_key('Social profile'),
         ],
+        'nationality' => [
+            'name_translation_key' => trans_key('Nationality'),
+        ],
     ],
 
     /*

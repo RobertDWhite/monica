@@ -35,6 +35,7 @@ class VaultContactApiController extends ApiController
         $vault = $request->user()->account->vaults()->findOrFail($vaultId);
 
         $contacts = $vault->contacts()
+            ->with(['file'])
             ->paginate($this->getLimitPerPage());
 
         return ContactResource::collection($contacts);
@@ -76,7 +77,37 @@ class VaultContactApiController extends ApiController
     public function show(Request $request, string $vaultId, string $contactId)
     {
         $vault = $request->user()->account->vaults()->findOrFail($vaultId);
-        $contact = $vault->contacts()->findOrFail($contactId);
+        $contact = $vault->contacts()
+            ->with([
+                'file',
+                'gender',
+                'pronoun',
+                'religion',
+                'company',
+                'contactInformations.contactInformationType',
+                'importantDates',
+                'addresses',
+                'notes.emotion',
+                'labels',
+                'groups.groupType',
+                'relationships',
+                'tasks',
+                'calls.callReason',
+                'calls.emotion',
+                'pets.petCategory',
+                'goals.streaks',
+                'quickFacts.vaultQuickFactsTemplate',
+                'timelineEvents.lifeEvents.lifeEventType',
+                'timelineEvents.lifeEvents.emotion',
+                'timelineEvents.lifeEvents.currency',
+                'loansAsLoaner.currency',
+                'loansAsLoanee.currency',
+                'moodTrackingEvents.moodTrackingParameter',
+                'lifeMetrics',
+                'reminders',
+                'posts',
+            ])
+            ->findOrFail($contactId);
 
         return new ContactResource($contact);
     }

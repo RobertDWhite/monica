@@ -25,7 +25,7 @@ struct AddEditContactView: View {
     }
 
     private var api: MonicaAPI {
-        MonicaAPI(baseURL: appState.serverURL, token: appState.bearerToken)
+        MonicaAPI(baseURL: appState.serverURL, token: appState.apiToken)
     }
 
     private var isEditing: Bool { contact != nil }

@@ -132,6 +132,24 @@ const destroyAvatar = () => {
     });
 };
 
+const uploadLocalAvatar = (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append('photo', file);
+  axios
+    .post(props.data.url.upload_avatar_local, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    .then((response) => {
+      router.visit(response.data.data);
+      flash(trans('The photo has been added'), 'success');
+    })
+    .catch((error) => {
+      form.errors = error.response.data;
+    });
+};
+
 const download = () => {
   router.post(props.data.url.download_vcard, null, {
     preserveScroll: true,
@@ -233,17 +251,10 @@ const navigateToSelected = () => {
               </li>
               <!-- upload new avatar -->
               <li v-if="!data.avatar.hasFile" class="mb-2">
-                <Uploadcare
-                  v-if="data.avatar.uploadcare.publicKey && data.avatar.canUploadFile"
-                  :public-key="data.avatar.uploadcare.publicKey"
-                  :secure-signature="data.avatar.uploadcare.signature"
-                  :secure-expire="data.avatar.uploadcare.expire"
-                  :tabs="'file'"
-                  :preview-step="false"
-                  @success="onSuccess"
-                  @error="onError">
-                  <span class="cursor-pointer text-blue-500 hover:underline"> {{ $t('Upload photo as avatar') }} </span>
-                </Uploadcare>
+                <label class="cursor-pointer text-blue-500 hover:underline">
+                  {{ $t('Upload photo') }}
+                  <input type="file" accept="image/*" class="hidden" @change="uploadLocalAvatar" />
+                </label>
               </li>
               <!-- archive contact -->
               <li v-if="data.listed && data.options.can_be_archived" class="mb-2">

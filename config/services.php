@@ -93,4 +93,14 @@ return [
         'realms' => env('KEYCLOAK_REALM'),
     ],
 
+    /*
+     * Generic OIDC token exchange for the mobile app.
+     * Set OIDC_ISSUER to your provider's issuer URL (e.g. Authentik application URL).
+     * The mobile app will exchange an OAuth access token for a Monica API token
+     * via POST /api/auth/token.
+     */
+    'oidc' => [
+        'issuer' => env('OIDC_ISSUER'),
+    ],
+
 ];

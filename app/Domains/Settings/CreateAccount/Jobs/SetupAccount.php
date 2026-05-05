@@ -749,6 +749,20 @@ class SetupAccount extends QueuableService implements ServiceInterface
                 'type' => null,
             ],
             [
+                'name_translation_key' => trans_key('fiancé'),
+                'name_reverse_relationship_translation_key' => trans_key('fiancée'),
+                'relationship_group_type_id' => $group->id,
+                'can_be_deleted' => true,
+                'type' => null,
+            ],
+            [
+                'name_translation_key' => trans_key('fiancée'),
+                'name_reverse_relationship_translation_key' => trans_key('fiancé'),
+                'relationship_group_type_id' => $group->id,
+                'can_be_deleted' => true,
+                'type' => null,
+            ],
+            [
                 'name_translation_key' => trans_key('ex-boyfriend'),
                 'name_reverse_relationship_translation_key' => trans_key('ex-boyfriend'),
                 'relationship_group_type_id' => $group->id,
@@ -983,6 +997,13 @@ class SetupAccount extends QueuableService implements ServiceInterface
         ]);
         $information->can_be_deleted = false;
         $information->save();
+
+        (new CreateContactInformationType)->execute([
+            'account_id' => $this->author->account_id,
+            'author_id' => $this->author->id,
+            'name_translation_key' => trans_key('Nationality'),
+            'type' => 'nationality',
+        ]);
 
         foreach (config('app.social_protocols') as $socialProtocol) {
             (new CreateContactInformationType)->execute([

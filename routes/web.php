@@ -1,6 +1,7 @@
 <?php
 
 use App\Domains\Contact\ManageAvatar\Web\Controllers\ModuleAvatarController;
+use App\Domains\Contact\ManageAvatar\Web\Controllers\ModuleAvatarLocalController;
 use App\Domains\Contact\ManageCalls\Web\Controllers\ContactModuleCallController;
 use App\Domains\Contact\ManageContact\Web\Controllers\ContactArchiveController;
 use App\Domains\Contact\ManageContact\Web\Controllers\ContactController;
@@ -282,6 +283,7 @@ Route::middleware([
                     // avatar
                     Route::put('avatar', [ModuleAvatarController::class, 'update'])->name('contact.avatar.update');
                     Route::delete('avatar', [ModuleAvatarController::class, 'destroy'])->name('contact.avatar.destroy');
+                    Route::post('avatar/local', [ModuleAvatarLocalController::class, 'store'])->name('contact.avatar.local.store');
 
                     // contact feed entries
                     Route::get('feed', [ContactFeedController::class, 'show'])->name('contact.feed.show');

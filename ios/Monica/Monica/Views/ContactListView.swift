@@ -11,7 +11,7 @@ struct ContactListView: View {
     @State private var showAddContact = false
 
     private var api: MonicaAPI {
-        MonicaAPI(baseURL: appState.serverURL, token: appState.bearerToken)
+        MonicaAPI(baseURL: appState.serverURL, token: appState.apiToken)
     }
 
     private var filtered: [Contact] {
@@ -41,15 +41,13 @@ struct ContactListView: View {
             } else {
                 List(filtered) { contact in
                     NavigationLink(value: contact) {
-                        HStack {
-                            Image(systemName: "person.circle.fill")
-                                .font(.title2)
-                                .foregroundStyle(.secondary)
+                        HStack(spacing: 12) {
+                            ContactAvatarView(avatar: contact.avatar, size: 40)
                             VStack(alignment: .leading) {
                                 Text(contact.displayName)
                                     .font(.headline)
                                 if let nickname = contact.nickname, !nickname.isEmpty {
-                                    Text("\"\(nickname)\"")
+                                    Text("\u{201C}\(nickname)\u{201D}")
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
                                 }
