@@ -21,6 +21,7 @@
 		B100000C /* OAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B200000C /* OAuthManager.swift */; };
 		B100000D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B200000D /* SettingsView.swift */; };
 		B100000E /* ContactAvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B200000E /* ContactAvatarView.swift */; };
+		B100000F /* ContactModuleEditors.swift in Sources */ = {isa = PBXBuildFile; fileRef = B200000F /* ContactModuleEditors.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -38,6 +39,7 @@
 		B200000C /* OAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OAuthManager.swift; sourceTree = "<group>"; };
 		B200000D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		B200000E /* ContactAvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactAvatarView.swift; sourceTree = "<group>"; };
+		B200000F /* ContactModuleEditors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactModuleEditors.swift; sourceTree = "<group>"; };
 		B300FFFE /* Monica.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Monica.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -101,6 +103,7 @@
 				B200000A /* AddEditContactView.swift */,
 				B200000D /* SettingsView.swift */,
 				B200000E /* ContactAvatarView.swift */,
+				B200000F /* ContactModuleEditors.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -195,6 +198,7 @@
 				B100000C /* OAuthManager.swift in Sources */,
 				B100000D /* SettingsView.swift in Sources */,
 				B100000E /* ContactAvatarView.swift in Sources */,
+				B100000F /* ContactModuleEditors.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

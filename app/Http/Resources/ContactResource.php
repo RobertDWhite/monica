@@ -10,6 +10,45 @@ use Illuminate\Http\Resources\Json\JsonResource;
  */
 class ContactResource extends JsonResource
 {
+    /**
+     * The relations to eager load so a ContactResource renders every module.
+     *
+     * Shared by the contact `show` endpoint and every contact-module write
+     * endpoint, which all return the fully hydrated contact after a change.
+     */
+    public static function eagerLoadRelations(): array
+    {
+        return [
+            'file',
+            'gender',
+            'pronoun',
+            'religion',
+            'company',
+            'contactInformations.contactInformationType',
+            'importantDates',
+            'addresses',
+            'notes.emotion',
+            'labels',
+            'groups.groupType',
+            'relationships',
+            'tasks',
+            'calls.callReason',
+            'calls.emotion',
+            'pets.petCategory',
+            'goals.streaks',
+            'quickFacts.vaultQuickFactsTemplate',
+            'timelineEvents.lifeEvents.lifeEventType',
+            'timelineEvents.lifeEvents.emotion',
+            'timelineEvents.lifeEvents.currency',
+            'loansAsLoaner.currency',
+            'loansAsLoanee.currency',
+            'moodTrackingEvents.moodTrackingParameter',
+            'lifeMetrics',
+            'reminders',
+            'posts',
+        ];
+    }
+
     public function toArray($request): array
     {
         return [
@@ -42,6 +81,7 @@ class ContactResource extends JsonResource
                 $this->relationLoaded('contactInformations'),
                 fn () => $this->contactInformations->map(fn ($info) => [
                     'id' => $info->id,
+                    'type_id' => $info->contactInformationType->id,
                     'label' => $info->contactInformationType->name,
                     'type' => $info->contactInformationType->type,
                     'protocol' => $info->contactInformationType->protocol,

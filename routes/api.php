@@ -2,6 +2,14 @@
 
 use App\Domains\Settings\ManageApiTokens\Api\Controllers\OAuthTokenController;
 use App\Domains\Settings\ManageUsers\Api\Controllers\UserController;
+use App\Domains\Vault\ManageVault\Api\Controllers\ContactAddressApiController;
+use App\Domains\Vault\ManageVault\Api\Controllers\ContactCallApiController;
+use App\Domains\Vault\ManageVault\Api\Controllers\ContactImportantDateApiController;
+use App\Domains\Vault\ManageVault\Api\Controllers\ContactInformationApiController;
+use App\Domains\Vault\ManageVault\Api\Controllers\ContactNoteApiController;
+use App\Domains\Vault\ManageVault\Api\Controllers\ContactReferenceApiController;
+use App\Domains\Vault\ManageVault\Api\Controllers\ContactReminderApiController;
+use App\Domains\Vault\ManageVault\Api\Controllers\ContactTaskApiController;
 use App\Domains\Vault\ManageVault\Api\Controllers\VaultContactApiController;
 use App\Domains\Vault\ManageVault\Api\Controllers\VaultController;
 use Illuminate\Support\Facades\Route;
@@ -30,4 +38,34 @@ Route::middleware('auth:sanctum')->name('api.')->group(function () {
 
     // contacts
     Route::apiResource('vaults.contacts', VaultContactApiController::class);
+
+    // reference data for contact-module pickers
+    Route::get('vaults/{vault}/reference', [ContactReferenceApiController::class, 'index'])
+        ->name('vaults.reference.index');
+
+    // contact modules (full CRUD over the existing domain services)
+    Route::prefix('vaults/{vault}/contacts/{contact}')->group(function () {
+        Route::apiResource('notes', ContactNoteApiController::class)
+            ->only(['store', 'update', 'destroy']);
+
+        Route::apiResource('tasks', ContactTaskApiController::class)
+            ->only(['store', 'update', 'destroy']);
+        Route::post('tasks/{task}/toggle', [ContactTaskApiController::class, 'toggle'])
+            ->name('tasks.toggle');
+
+        Route::apiResource('calls', ContactCallApiController::class)
+            ->only(['store', 'update', 'destroy']);
+
+        Route::apiResource('reminders', ContactReminderApiController::class)
+            ->only(['store', 'update', 'destroy']);
+
+        Route::apiResource('important-dates', ContactImportantDateApiController::class)
+            ->only(['store', 'update', 'destroy']);
+
+        Route::apiResource('contact-information', ContactInformationApiController::class)
+            ->only(['store', 'update', 'destroy']);
+
+        Route::apiResource('addresses', ContactAddressApiController::class)
+            ->only(['store', 'update', 'destroy']);
+    });
 });

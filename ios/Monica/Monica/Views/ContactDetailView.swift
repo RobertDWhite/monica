@@ -13,6 +13,7 @@ struct ContactDetailView: View {
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
     @State private var isDeleting = false
+    @State private var activeSheet: ModuleSheet?
 
     private var displayed: Contact { full ?? contact }
 
@@ -104,6 +105,20 @@ struct ContactDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
+                Menu {
+                    Button { activeSheet = .note(nil) } label: { Label("Note", systemImage: "note.text") }
+                    Button { activeSheet = .task(nil) } label: { Label("Task", systemImage: "checklist") }
+                    Button { activeSheet = .call(nil) } label: { Label("Call", systemImage: "phone") }
+                    Button { activeSheet = .date(nil) } label: { Label("Important date", systemImage: "calendar") }
+                    Button { activeSheet = .reminder(nil) } label: { Label("Reminder", systemImage: "bell") }
+                    Button { activeSheet = .info(nil) } label: { Label("Contact info", systemImage: "envelope") }
+                    Button { activeSheet = .address(nil) } label: { Label("Address", systemImage: "mappin.and.ellipse") }
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .disabled(isLoading && full == nil)
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Edit") { showEdit = true }
                     .disabled(isLoading && full == nil)
             }
@@ -112,6 +127,9 @@ struct ContactDetailView: View {
             AddEditContactView(vault: vault, contact: displayed) { updated in
                 full = updated
             }
+        }
+        .sheet(item: $activeSheet) { sheet in
+            moduleEditor(for: sheet)
         }
         .confirmationDialog(
             "Delete \(displayed.displayName)?",
@@ -190,19 +208,40 @@ struct ContactDetailView: View {
 
     @ViewBuilder
     private func contactInfoSection(_ infos: [ContactInformation]) -> some View {
-        Section("Contact") {
+        Section {
             ForEach(infos) { info in
-                if let url = info.callURL {
-                    Link(destination: url) {
-                        LabeledContent(info.label) {
-                            Text(info.data)
-                                .foregroundStyle(.blue)
+                Group {
+                    if let url = info.callURL {
+                        Link(destination: url) {
+                            LabeledContent(info.label) {
+                                Text(info.data).foregroundStyle(.blue)
+                            }
                         }
+                    } else {
+                        LabeledContent(info.label, value: info.data)
                     }
-                } else {
-                    LabeledContent(info.label, value: info.data)
+                }
+                .swipeActions(edge: .trailing) {
+                    Button(role: .destructive) {
+                        mutate { try await api.deleteContactInformation(vaultId: vault.id, contactId: contact.id, informationId: info.id) }
+                    } label: { Label("Delete", systemImage: "trash") }
+                    Button { activeSheet = .info(info) } label: { Label("Edit", systemImage: "pencil") }.tint(.blue)
                 }
             }
+        } header: {
+            sectionHeader("Contact", add: { activeSheet = .info(nil) })
+        }
+    }
+
+    /// A section header with a trailing add (`+`) button.
+    @ViewBuilder
+    private func sectionHeader(_ title: String, add: @escaping () -> Void) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Button(action: add) { Image(systemName: "plus.circle") }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.accentColor)
         }
     }
 
@@ -237,16 +276,24 @@ struct ContactDetailView: View {
 
     @ViewBuilder
     private func datesSection(_ dates: [ContactDate]) -> some View {
-        Section("Dates") {
+        Section {
             ForEach(dates) { date in
                 LabeledContent(date.label ?? "Date", value: date.formatted)
+                    .swipeActions(edge: .trailing) {
+                        Button(role: .destructive) {
+                            mutate { try await api.deleteImportantDate(vaultId: vault.id, contactId: contact.id, dateId: date.id) }
+                        } label: { Label("Delete", systemImage: "trash") }
+                        Button { activeSheet = .date(date) } label: { Label("Edit", systemImage: "pencil") }.tint(.blue)
+                    }
             }
+        } header: {
+            sectionHeader("Dates", add: { activeSheet = .date(nil) })
         }
     }
 
     @ViewBuilder
     private func addressesSection(_ addresses: [ContactAddress]) -> some View {
-        Section("Addresses") {
+        Section {
             ForEach(addresses) { addr in
                 VStack(alignment: .leading, spacing: 2) {
                     Text(addr.formatted)
@@ -257,13 +304,21 @@ struct ContactDetailView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                .swipeActions(edge: .trailing) {
+                    Button(role: .destructive) {
+                        mutate { try await api.deleteAddress(vaultId: vault.id, contactId: contact.id, addressId: addr.id) }
+                    } label: { Label("Delete", systemImage: "trash") }
+                    Button { activeSheet = .address(addr) } label: { Label("Edit", systemImage: "pencil") }.tint(.blue)
+                }
             }
+        } header: {
+            sectionHeader("Addresses", add: { activeSheet = .address(nil) })
         }
     }
 
     @ViewBuilder
     private func notesSection(_ notes: [ContactNote]) -> some View {
-        Section("Notes") {
+        Section {
             ForEach(notes) { note in
                 VStack(alignment: .leading, spacing: 4) {
                     if let title = note.title, !title.isEmpty {
@@ -276,7 +331,17 @@ struct ContactDetailView: View {
                         Text(emotion).font(.caption).foregroundStyle(.tertiary)
                     }
                 }
+                .contentShape(Rectangle())
+                .onTapGesture { activeSheet = .note(note) }
+                .swipeActions(edge: .trailing) {
+                    Button(role: .destructive) {
+                        mutate { try await api.deleteNote(vaultId: vault.id, contactId: contact.id, noteId: note.id) }
+                    } label: { Label("Delete", systemImage: "trash") }
+                    Button { activeSheet = .note(note) } label: { Label("Edit", systemImage: "pencil") }.tint(.blue)
+                }
             }
+        } header: {
+            sectionHeader("Notes", add: { activeSheet = .note(nil) })
         }
     }
 
@@ -336,13 +401,19 @@ struct ContactDetailView: View {
 
     @ViewBuilder
     private func tasksSection(_ tasks: [ContactTask]) -> some View {
-        Section("Tasks") {
+        Section {
             ForEach(tasks) { task in
                 HStack {
-                    Image(systemName: task.completed ? "checkmark.circle.fill" : "circle")
-                        .foregroundStyle(task.completed ? .green : .secondary)
+                    Button {
+                        mutate { try await api.toggleTask(vaultId: vault.id, contactId: contact.id, taskId: task.id) }
+                    } label: {
+                        Image(systemName: task.completed ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(task.completed ? .green : .secondary)
+                    }
+                    .buttonStyle(.plain)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(task.label ?? "Task")
+                            .strikethrough(task.completed)
                         if let desc = task.description, !desc.isEmpty {
                             Text(desc).font(.caption).foregroundStyle(.secondary)
                         }
@@ -352,13 +423,23 @@ struct ContactDetailView: View {
                         Text(due).font(.caption2).foregroundStyle(.secondary)
                     }
                 }
+                .contentShape(Rectangle())
+                .onTapGesture { activeSheet = .task(task) }
+                .swipeActions(edge: .trailing) {
+                    Button(role: .destructive) {
+                        mutate { try await api.deleteTask(vaultId: vault.id, contactId: contact.id, taskId: task.id) }
+                    } label: { Label("Delete", systemImage: "trash") }
+                    Button { activeSheet = .task(task) } label: { Label("Edit", systemImage: "pencil") }.tint(.blue)
+                }
             }
+        } header: {
+            sectionHeader("Tasks", add: { activeSheet = .task(nil) })
         }
     }
 
     @ViewBuilder
     private func callsSection(_ calls: [ContactCall]) -> some View {
-        Section("Calls") {
+        Section {
             ForEach(calls) { call in
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
@@ -387,7 +468,17 @@ struct ContactDetailView: View {
                         }
                     }
                 }
+                .contentShape(Rectangle())
+                .onTapGesture { activeSheet = .call(call) }
+                .swipeActions(edge: .trailing) {
+                    Button(role: .destructive) {
+                        mutate { try await api.deleteCall(vaultId: vault.id, contactId: contact.id, callId: call.id) }
+                    } label: { Label("Delete", systemImage: "trash") }
+                    Button { activeSheet = .call(call) } label: { Label("Edit", systemImage: "pencil") }.tint(.blue)
+                }
             }
+        } header: {
+            sectionHeader("Calls", add: { activeSheet = .call(nil) })
         }
     }
 
@@ -518,10 +609,20 @@ struct ContactDetailView: View {
 
     @ViewBuilder
     private func remindersSection(_ reminders: [ContactReminder]) -> some View {
-        Section("Reminders") {
+        Section {
             ForEach(reminders) { reminder in
                 reminderRow(reminder)
+                    .contentShape(Rectangle())
+                    .onTapGesture { activeSheet = .reminder(reminder) }
+                    .swipeActions(edge: .trailing) {
+                        Button(role: .destructive) {
+                            mutate { try await api.deleteReminder(vaultId: vault.id, contactId: contact.id, reminderId: reminder.id) }
+                        } label: { Label("Delete", systemImage: "trash") }
+                        Button { activeSheet = .reminder(reminder) } label: { Label("Edit", systemImage: "pencil") }.tint(.blue)
+                    }
             }
+        } header: {
+            sectionHeader("Reminders", add: { activeSheet = .reminder(nil) })
         }
     }
 
@@ -665,6 +766,60 @@ struct ContactDetailView: View {
             // stay on screen
         }
         isDeleting = false
+    }
+
+    /// Run a module delete/toggle and replace the cached contact with the
+    /// fully hydrated one the server returns.
+    private func mutate(_ work: @escaping () async throws -> Contact) {
+        Task {
+            do { full = try await work() }
+            catch { loadError = error.localizedDescription }
+        }
+    }
+
+    @ViewBuilder
+    private func moduleEditor(for sheet: ModuleSheet) -> some View {
+        let onSaved: (Contact) -> Void = { full = $0 }
+        switch sheet {
+        case .note(let item):
+            NoteEditorView(vault: vault, contact: displayed, existing: item, onSaved: onSaved)
+        case .task(let item):
+            TaskEditorView(vault: vault, contact: displayed, existing: item, onSaved: onSaved)
+        case .call(let item):
+            CallEditorView(vault: vault, contact: displayed, existing: item, onSaved: onSaved)
+        case .date(let item):
+            ImportantDateEditorView(vault: vault, contact: displayed, existing: item, onSaved: onSaved)
+        case .reminder(let item):
+            ReminderEditorView(vault: vault, contact: displayed, existing: item, onSaved: onSaved)
+        case .info(let item):
+            ContactInfoEditorView(vault: vault, contact: displayed, existing: item, onSaved: onSaved)
+        case .address(let item):
+            AddressEditorView(vault: vault, contact: displayed, existing: item, onSaved: onSaved)
+        }
+    }
+}
+
+/// Identifies which module editor sheet is presented, carrying the item being
+/// edited (nil = create a new one).
+enum ModuleSheet: Identifiable {
+    case note(ContactNote?)
+    case task(ContactTask?)
+    case call(ContactCall?)
+    case date(ContactDate?)
+    case reminder(ContactReminder?)
+    case info(ContactInformation?)
+    case address(ContactAddress?)
+
+    var id: String {
+        switch self {
+        case .note(let i):     return "note-\(i?.id.description ?? "new")"
+        case .task(let i):     return "task-\(i?.id.description ?? "new")"
+        case .call(let i):     return "call-\(i?.id.description ?? "new")"
+        case .date(let i):     return "date-\(i?.id.description ?? "new")"
+        case .reminder(let i): return "reminder-\(i?.id.description ?? "new")"
+        case .info(let i):     return "info-\(i?.id.description ?? "new")"
+        case .address(let i):  return "address-\(i?.id.description ?? "new")"
+        }
     }
 }
 

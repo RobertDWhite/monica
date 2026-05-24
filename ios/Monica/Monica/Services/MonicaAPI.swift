@@ -21,10 +21,14 @@ enum APIError: LocalizedError {
 final class MonicaAPI {
     private let baseURL: String
     private let token: String
+    private let encoder: JSONEncoder
 
     init(baseURL: String, token: String) {
         self.baseURL = baseURL.trimmingCharacters(in: .init(charactersIn: "/"))
         self.token = token
+        let enc = JSONEncoder()
+        enc.keyEncodingStrategy = .convertToSnakeCase
+        self.encoder = enc
     }
 
     // MARK: - Vaults
@@ -58,6 +62,119 @@ final class MonicaAPI {
 
     func deleteContact(vaultId: String, contactId: String) async throws {
         try await delete("/api/vaults/\(vaultId)/contacts/\(contactId)")
+    }
+
+    // MARK: - Reference data
+
+    func reference(vaultId: String) async throws -> ReferenceData {
+        let response: ReferenceResponse = try await get("/api/vaults/\(vaultId)/reference")
+        return response.data
+    }
+
+    // MARK: - Contact modules
+    //
+    // Every module mutation returns the fully hydrated contact, so the caller
+    // can replace its cached copy without an extra fetch.
+
+    private func base(_ vaultId: String, _ contactId: String) -> String {
+        "/api/vaults/\(vaultId)/contacts/\(contactId)"
+    }
+
+    // Notes
+    func createNote(vaultId: String, contactId: String, payload: NotePayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/notes", method: "POST", body: payload)
+    }
+    func updateNote(vaultId: String, contactId: String, noteId: Int, payload: NotePayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/notes/\(noteId)", method: "PUT", body: payload)
+    }
+    func deleteNote(vaultId: String, contactId: String, noteId: Int) async throws -> Contact {
+        try await mutateNoBody(base(vaultId, contactId) + "/notes/\(noteId)", method: "DELETE")
+    }
+
+    // Tasks
+    func createTask(vaultId: String, contactId: String, payload: TaskPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/tasks", method: "POST", body: payload)
+    }
+    func updateTask(vaultId: String, contactId: String, taskId: Int, payload: TaskPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/tasks/\(taskId)", method: "PUT", body: payload)
+    }
+    func toggleTask(vaultId: String, contactId: String, taskId: Int) async throws -> Contact {
+        try await mutateNoBody(base(vaultId, contactId) + "/tasks/\(taskId)/toggle", method: "POST")
+    }
+    func deleteTask(vaultId: String, contactId: String, taskId: Int) async throws -> Contact {
+        try await mutateNoBody(base(vaultId, contactId) + "/tasks/\(taskId)", method: "DELETE")
+    }
+
+    // Calls
+    func createCall(vaultId: String, contactId: String, payload: CallPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/calls", method: "POST", body: payload)
+    }
+    func updateCall(vaultId: String, contactId: String, callId: Int, payload: CallPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/calls/\(callId)", method: "PUT", body: payload)
+    }
+    func deleteCall(vaultId: String, contactId: String, callId: Int) async throws -> Contact {
+        try await mutateNoBody(base(vaultId, contactId) + "/calls/\(callId)", method: "DELETE")
+    }
+
+    // Reminders
+    func createReminder(vaultId: String, contactId: String, payload: ReminderPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/reminders", method: "POST", body: payload)
+    }
+    func updateReminder(vaultId: String, contactId: String, reminderId: Int, payload: ReminderPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/reminders/\(reminderId)", method: "PUT", body: payload)
+    }
+    func deleteReminder(vaultId: String, contactId: String, reminderId: Int) async throws -> Contact {
+        try await mutateNoBody(base(vaultId, contactId) + "/reminders/\(reminderId)", method: "DELETE")
+    }
+
+    // Important dates
+    func createImportantDate(vaultId: String, contactId: String, payload: ImportantDatePayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/important-dates", method: "POST", body: payload)
+    }
+    func updateImportantDate(vaultId: String, contactId: String, dateId: Int, payload: ImportantDatePayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/important-dates/\(dateId)", method: "PUT", body: payload)
+    }
+    func deleteImportantDate(vaultId: String, contactId: String, dateId: Int) async throws -> Contact {
+        try await mutateNoBody(base(vaultId, contactId) + "/important-dates/\(dateId)", method: "DELETE")
+    }
+
+    // Contact information
+    func createContactInformation(vaultId: String, contactId: String, payload: ContactInformationPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/contact-information", method: "POST", body: payload)
+    }
+    func updateContactInformation(vaultId: String, contactId: String, informationId: Int, payload: ContactInformationPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/contact-information/\(informationId)", method: "PUT", body: payload)
+    }
+    func deleteContactInformation(vaultId: String, contactId: String, informationId: Int) async throws -> Contact {
+        try await mutateNoBody(base(vaultId, contactId) + "/contact-information/\(informationId)", method: "DELETE")
+    }
+
+    // Addresses
+    func createAddress(vaultId: String, contactId: String, payload: AddressPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/addresses", method: "POST", body: payload)
+    }
+    func updateAddress(vaultId: String, contactId: String, addressId: Int, payload: AddressPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/addresses/\(addressId)", method: "PUT", body: payload)
+    }
+    func deleteAddress(vaultId: String, contactId: String, addressId: Int) async throws -> Contact {
+        try await mutateNoBody(base(vaultId, contactId) + "/addresses/\(addressId)", method: "DELETE")
+    }
+
+    // MARK: - Mutation helpers
+
+    private func mutate<B: Encodable>(_ path: String, method: String, body: B) async throws -> Contact {
+        var req = try request(for: path, method: method)
+        req.httpBody = try encoder.encode(body)
+        let data = try await execute(req)
+        do { return try JSONDecoder().decode(SingleContactResponse.self, from: data).data }
+        catch { throw APIError.decodingError(error) }
+    }
+
+    private func mutateNoBody(_ path: String, method: String) async throws -> Contact {
+        let req = try request(for: path, method: method)
+        let data = try await execute(req)
+        do { return try JSONDecoder().decode(SingleContactResponse.self, from: data).data }
+        catch { throw APIError.decodingError(error) }
     }
 
     // MARK: - Helpers
@@ -98,7 +215,7 @@ final class MonicaAPI {
 
     private func post<B: Encodable, T: Decodable>(_ path: String, body: B) async throws -> T {
         var req = try request(for: path, method: "POST")
-        req.httpBody = try JSONEncoder().encode(body)
+        req.httpBody = try encoder.encode(body)
         let data = try await execute(req)
         do { return try JSONDecoder().decode(T.self, from: data) }
         catch { throw APIError.decodingError(error) }
@@ -106,7 +223,7 @@ final class MonicaAPI {
 
     private func put<B: Encodable, T: Decodable>(_ path: String, body: B) async throws -> T {
         var req = try request(for: path, method: "PUT")
-        req.httpBody = try JSONEncoder().encode(body)
+        req.httpBody = try encoder.encode(body)
         let data = try await execute(req)
         do { return try JSONDecoder().decode(T.self, from: data) }
         catch { throw APIError.decodingError(error) }

@@ -78,35 +78,7 @@ class VaultContactApiController extends ApiController
     {
         $vault = $request->user()->account->vaults()->findOrFail($vaultId);
         $contact = $vault->contacts()
-            ->with([
-                'file',
-                'gender',
-                'pronoun',
-                'religion',
-                'company',
-                'contactInformations.contactInformationType',
-                'importantDates',
-                'addresses',
-                'notes.emotion',
-                'labels',
-                'groups.groupType',
-                'relationships',
-                'tasks',
-                'calls.callReason',
-                'calls.emotion',
-                'pets.petCategory',
-                'goals.streaks',
-                'quickFacts.vaultQuickFactsTemplate',
-                'timelineEvents.lifeEvents.lifeEventType',
-                'timelineEvents.lifeEvents.emotion',
-                'timelineEvents.lifeEvents.currency',
-                'loansAsLoaner.currency',
-                'loansAsLoanee.currency',
-                'moodTrackingEvents.moodTrackingParameter',
-                'lifeMetrics',
-                'reminders',
-                'posts',
-            ])
+            ->with(ContactResource::eagerLoadRelations())
             ->findOrFail($contactId);
 
         return new ContactResource($contact);

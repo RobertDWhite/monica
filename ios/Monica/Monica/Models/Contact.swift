@@ -131,10 +131,17 @@ struct ContactCompany: Codable, Hashable {
 
 struct ContactInformation: Identifiable, Codable, Hashable {
     let id: Int
+    let typeId: Int?
     let label: String
     let type: String?
     let `protocol`: String?
     let data: String
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case typeId = "type_id"
+        case label, type, `protocol`, data
+    }
 
     var callURL: URL? {
         guard let proto = `protocol`, !proto.isEmpty else { return nil }
@@ -143,7 +150,7 @@ struct ContactInformation: Identifiable, Codable, Hashable {
 }
 
 struct ContactDate: Identifiable, Codable, Hashable {
-    let id: String
+    let id: Int
     let label: String?
     let day: Int?
     let month: Int?
@@ -215,7 +222,7 @@ struct ContactLabel: Identifiable, Codable, Hashable {
 }
 
 struct ContactGroup: Identifiable, Codable, Hashable {
-    let id: String
+    let id: Int
     let name: String
     let type: String?
 }
@@ -234,7 +241,7 @@ struct ContactRelationship: Codable, Hashable {
 }
 
 struct ContactTask: Identifiable, Codable, Hashable {
-    let id: String
+    let id: Int
     let label: String?
     let description: String?
     let completed: Bool
@@ -422,4 +429,90 @@ struct ContactPayload: Codable {
         case middleName = "middle_name"
         case nickname, prefix, suffix, listed
     }
+}
+
+// MARK: - Module write payloads
+//
+// Property names are camelCase; MonicaAPI encodes with
+// `.convertToSnakeCase`, and nil optionals are omitted by the synthesized
+// Encodable, so they map cleanly onto the Laravel module services.
+
+struct NotePayload: Encodable {
+    var title: String?
+    var body: String
+    var emotionId: Int?
+}
+
+struct TaskPayload: Encodable {
+    var label: String
+    var description: String?
+    var dueAt: String?
+}
+
+struct CallPayload: Encodable {
+    var calledAt: String        // "yyyy-MM-dd"
+    var type: String            // "audio" | "video"
+    var whoInitiated: String    // "me" | "contact"
+    var duration: Int?
+    var description: String?
+    var answered: Bool?
+}
+
+struct ReminderPayload: Encodable {
+    var label: String
+    var day: Int?
+    var month: Int?
+    var year: Int?
+    var type: String            // one_time | recurring_day | recurring_month | recurring_year
+    var frequencyNumber: Int?
+}
+
+struct ImportantDatePayload: Encodable {
+    var label: String
+    var day: Int?
+    var month: Int?
+    var year: Int?
+}
+
+struct ContactInformationPayload: Encodable {
+    var contactInformationTypeId: Int
+    var data: String
+}
+
+struct AddressPayload: Encodable {
+    var line1: String?
+    var line2: String?
+    var city: String?
+    var province: String?
+    var postalCode: String?
+    var country: String?
+    var isPastAddress: Bool
+}
+
+// MARK: - Reference data (picker lookups)
+
+struct ReferenceData: Codable {
+    let contactInformationTypes: [ReferenceType]
+    let addressTypes: [ReferenceType]
+    let importantDateTypes: [ReferenceType]
+
+    enum CodingKeys: String, CodingKey {
+        case contactInformationTypes = "contact_information_types"
+        case addressTypes = "address_types"
+        case importantDateTypes = "important_date_types"
+    }
+}
+
+struct ReferenceType: Identifiable, Codable, Hashable {
+    let id: Int
+    let name: String?
+    let label: String?
+    let type: String?
+    let `protocol`: String?
+
+    var displayName: String { name ?? label ?? "—" }
+}
+
+struct ReferenceResponse: Codable {
+    let data: ReferenceData
 }
