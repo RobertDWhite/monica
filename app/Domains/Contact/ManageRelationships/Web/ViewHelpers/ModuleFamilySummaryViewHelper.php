@@ -22,20 +22,22 @@ class ModuleFamilySummaryViewHelper
         $loveRelationshipType = $contact->vault->account->relationshipGroupTypes()
             ->firstWhere('type', RelationshipGroupType::TYPE_LOVE);
 
-        $loveRelationships = $loveRelationshipType->types()
-            ->where('type', RelationshipType::TYPE_LOVE)
-            ->get();
-
-        $loveRelationshipsCollection = self::getRelations($loveRelationships, $contact);
+        $loveRelationshipsCollection = $loveRelationshipType
+            ? self::getRelations(
+                $loveRelationshipType->types()->where('type', RelationshipType::TYPE_LOVE)->get(),
+                $contact
+            )
+            : collect();
 
         $familyRelationshipType = $contact->vault->account->relationshipGroupTypes()
             ->firstWhere('type', RelationshipGroupType::TYPE_FAMILY);
 
-        $familyRelationships = $familyRelationshipType->types()
-            ->where('type', RelationshipType::TYPE_CHILD)
-            ->get();
-
-        $familyRelationshipsCollection = self::getRelations($familyRelationships, $contact);
+        $familyRelationshipsCollection = $familyRelationshipType
+            ? self::getRelations(
+                $familyRelationshipType->types()->where('type', RelationshipType::TYPE_CHILD)->get(),
+                $contact
+            )
+            : collect();
 
         return [
             'family_relationships' => $familyRelationshipsCollection,

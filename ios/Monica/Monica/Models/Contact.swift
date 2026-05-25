@@ -37,6 +37,7 @@ struct Contact: Identifiable, Codable, Hashable {
     let lifeMetrics: [ContactLifeMetric]?
     let documents: [ContactDocument]?
     let posts: [ContactPost]?
+    let family: ContactFamily?
     let createdAt: String?
     let updatedAt: String?
 
@@ -61,7 +62,7 @@ struct Contact: Identifiable, Codable, Hashable {
         case loans, reminders
         case moodTrackingEvents = "mood_tracking_events"
         case lifeMetrics = "life_metrics"
-        case documents, posts
+        case documents, posts, family
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
@@ -109,6 +110,7 @@ struct Contact: Identifiable, Codable, Hashable {
         lifeMetrics         = try? c.decodeIfPresent([ContactLifeMetric].self,  forKey: .lifeMetrics)
         documents           = try? c.decodeIfPresent([ContactDocument].self,    forKey: .documents)
         posts               = try? c.decodeIfPresent([ContactPost].self,        forKey: .posts)
+        family              = try? c.decodeIfPresent(ContactFamily.self,        forKey: .family)
     }
 
     var displayName: String {
@@ -407,6 +409,27 @@ struct ContactPost: Identifiable, Codable, Hashable {
     enum CodingKeys: String, CodingKey {
         case id, title, excerpt
         case writtenAt = "written_at"
+    }
+}
+
+struct ContactFamily: Codable, Hashable {
+    let partners: [FamilyMember]
+    let children: [FamilyMember]
+
+    var isEmpty: Bool { partners.isEmpty && children.isEmpty }
+}
+
+struct FamilyMember: Identifiable, Codable, Hashable {
+    let contactId: String
+    let name: String?
+    let avatar: ContactAvatar?
+    let age: Int?
+
+    var id: String { contactId }
+
+    enum CodingKeys: String, CodingKey {
+        case contactId = "contact_id"
+        case name, avatar, age
     }
 }
 

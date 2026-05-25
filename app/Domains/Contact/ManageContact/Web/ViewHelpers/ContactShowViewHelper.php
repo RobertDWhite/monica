@@ -228,6 +228,16 @@ class ContactShowViewHelper
             ]);
         }
 
+        // Always surface family associations (partner + children) on every
+        // contact, even when the account's template omits the module.
+        if (! $modulesCollection->contains(fn ($m) => $m['type'] === Module::TYPE_FAMILY_SUMMARY)) {
+            $modulesCollection->push([
+                'id' => 'family-summary',
+                'type' => Module::TYPE_FAMILY_SUMMARY,
+                'data' => ModuleFamilySummaryViewHelper::data($contact, $user),
+            ]);
+        }
+
         return $modulesCollection;
     }
 

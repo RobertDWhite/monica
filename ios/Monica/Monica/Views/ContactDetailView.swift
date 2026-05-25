@@ -35,6 +35,9 @@ struct ContactDetailView: View {
             if let infos = displayed.contactInformations, !infos.isEmpty {
                 contactInfoSection(infos)
             }
+            if let family = displayed.family, !family.isEmpty {
+                familySection(family)
+            }
             nameDetailsSection
             if let company = displayed.company {
                 companySection(company)
@@ -376,6 +379,30 @@ struct ContactDetailView: View {
                     Text(group.name)
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func familySection(_ family: ContactFamily) -> some View {
+        Section("Family") {
+            ForEach(family.partners) { familyRow($0, role: "Partner") }
+            ForEach(family.children) { familyRow($0, role: "Child") }
+        }
+    }
+
+    @ViewBuilder
+    private func familyRow(_ member: FamilyMember, role: String) -> some View {
+        HStack(spacing: 10) {
+            ContactAvatarView(avatar: member.avatar, size: 32)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(member.name ?? "Unknown")
+                if let age = member.age {
+                    Text("\(role) · age \(age)").font(.caption).foregroundStyle(.secondary)
+                } else {
+                    Text(role).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
         }
     }
 

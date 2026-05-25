@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Domains\Contact\ManageRelationships\Web\ViewHelpers\ModuleFamilySummaryViewHelper;
 use App\Helpers\DateHelper;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -46,6 +47,27 @@ class ContactResource extends JsonResource
             'lifeMetrics',
             'reminders',
             'posts',
+        ];
+    }
+
+    /**
+     * Partner(s) and children of the contact, in a flat client-friendly shape.
+     * Mirrors the web family summary so app + site stay consistent.
+     */
+    private function familySummary($request): array
+    {
+        $summary = ModuleFamilySummaryViewHelper::data($this->resource, $request->user());
+
+        $map = fn ($rows) => collect($rows)->map(fn ($r) => [
+            'contact_id' => $r['contact']['id'],
+            'name' => $r['contact']['name'],
+            'avatar' => $r['contact']['avatar'],
+            'age' => $r['contact']['age'],
+        ])->values();
+
+        return [
+            'partners' => $map($summary['love_relationships']),
+            'children' => $map($summary['family_relationships']),
         ];
     }
 
@@ -160,6 +182,10 @@ class ContactResource extends JsonResource
                     'relationship_type' => null,
                 ])
             ),
+
+            // Family associations — partner(s) + children — always present so
+            // clients can surface them on every contact.
+            'family' => $this->familySummary($request),
 
             // Tasks
             'tasks' => $this->when(
