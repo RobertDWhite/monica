@@ -113,6 +113,28 @@ struct Contact: Identifiable, Codable, Hashable {
         family              = try? c.decodeIfPresent(ContactFamily.self,        forKey: .family)
     }
 
+    /// Lightweight stub used to navigate to a related contact; the detail
+    /// view fetches the full record by id on appear.
+    init(stubId id: String, vaultId: String, name: String?, avatar: ContactAvatar?) {
+        self.id = id
+        self.vaultId = vaultId
+        self.firstName = name
+        self.lastName = nil; self.middleName = nil; self.nickname = nil; self.maidenName = nil
+        self.prefix = nil; self.suffix = nil
+        self.listed = true
+        self.canBeDeleted = false
+        self.avatar = avatar
+        self.gender = nil; self.pronoun = nil; self.religion = nil; self.jobPosition = nil
+        self.company = nil
+        self.contactInformations = nil; self.importantDates = nil; self.addresses = nil
+        self.notes = nil; self.labels = nil; self.groups = nil; self.relationships = nil
+        self.tasks = nil; self.calls = nil; self.pets = nil; self.goals = nil
+        self.quickFacts = nil; self.timelineEvents = nil; self.loans = nil; self.reminders = nil
+        self.moodTrackingEvents = nil; self.lifeMetrics = nil; self.documents = nil
+        self.posts = nil; self.family = nil
+        self.createdAt = nil; self.updatedAt = nil
+    }
+
     var displayName: String {
         let parts = [prefix, firstName, middleName, lastName, suffix]
             .compactMap { $0?.isEmpty == false ? $0 : nil }
@@ -229,15 +251,18 @@ struct ContactGroup: Identifiable, Codable, Hashable {
     let type: String?
 }
 
-struct ContactRelationship: Codable, Hashable {
+struct ContactRelationship: Identifiable, Codable, Hashable {
     let contactId: String
     let name: String?
     let avatar: ContactAvatar?
     let relationshipType: String?
+    let group: String?
+
+    var id: String { "\(contactId)-\(relationshipType ?? "")" }
 
     enum CodingKeys: String, CodingKey {
         case contactId = "contact_id"
-        case name, avatar
+        case name, avatar, group
         case relationshipType = "relationship_type"
     }
 }

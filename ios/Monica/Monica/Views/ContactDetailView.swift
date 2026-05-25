@@ -392,33 +392,36 @@ struct ContactDetailView: View {
 
     @ViewBuilder
     private func familyRow(_ member: FamilyMember, role: String) -> some View {
-        HStack(spacing: 10) {
-            ContactAvatarView(avatar: member.avatar, size: 32)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(member.name ?? "Unknown")
-                if let age = member.age {
-                    Text("\(role) · age \(age)").font(.caption).foregroundStyle(.secondary)
-                } else {
-                    Text(role).font(.caption).foregroundStyle(.secondary)
+        NavigationLink(value: Contact(stubId: member.contactId, vaultId: vault.id, name: member.name, avatar: member.avatar)) {
+            HStack(spacing: 10) {
+                ContactAvatarView(avatar: member.avatar, size: 32)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(member.name ?? "Unknown")
+                    if let age = member.age {
+                        Text("\(role) · age \(age)").font(.caption).foregroundStyle(.secondary)
+                    } else {
+                        Text(role).font(.caption).foregroundStyle(.secondary)
+                    }
                 }
             }
-            Spacer()
         }
     }
 
     @ViewBuilder
     private func relationshipsSection(_ relationships: [ContactRelationship]) -> some View {
         Section("Relationships") {
-            ForEach(relationships, id: \.contactId) { rel in
-                HStack(spacing: 10) {
-                    ContactAvatarView(avatar: rel.avatar, size: 32)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(rel.name ?? "Unknown")
-                            .font(.body)
-                        if let type = rel.relationshipType, !type.isEmpty {
-                            Text(type)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+            ForEach(relationships) { rel in
+                NavigationLink(value: Contact(stubId: rel.contactId, vaultId: vault.id, name: rel.name, avatar: rel.avatar)) {
+                    HStack(spacing: 10) {
+                        ContactAvatarView(avatar: rel.avatar, size: 32)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(rel.name ?? "Unknown")
+                                .font(.body)
+                            if let type = rel.relationshipType, !type.isEmpty {
+                                Text(type.capitalized)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }

@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Domains\Contact\ManageRelationships\Web\ViewHelpers\ModuleFamilySummaryViewHelper;
+use App\Domains\Contact\ManageRelationships\Web\ViewHelpers\ModuleRelationshipViewHelper;
 use App\Helpers\DateHelper;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -54,6 +55,27 @@ class ContactResource extends JsonResource
      * Partner(s) and children of the contact, in a flat client-friendly shape.
      * Mirrors the web family summary so app + site stay consistent.
      */
+    /**
+     * All relationships in both directions, flattened with the correct
+     * directional label + group, so reverse relationships (parent of a child,
+     * etc.) appear automatically without being added on both contacts.
+     */
+    private function relationshipsList($request): array
+    {
+        $data = ModuleRelationshipViewHelper::data($this->resource, $request->user());
+
+        return collect($data['relationship_group_types'])
+            ->flatMap(fn ($group) => collect($group['relationship_types'])->map(fn ($r) => [
+                'contact_id' => $r['contact']['id'],
+                'name' => $r['contact']['name'],
+                'avatar' => $r['contact']['avatar'],
+                'relationship_type' => $r['relationship_type']['name'],
+                'group' => $group['name'],
+            ]))
+            ->values()
+            ->all();
+    }
+
     private function familySummary($request): array
     {
         $summary = ModuleFamilySummaryViewHelper::data($this->resource, $request->user());
@@ -173,15 +195,10 @@ class ContactResource extends JsonResource
             ),
 
             // Relationships (linked contacts)
-            'relationships' => $this->when(
-                $this->relationLoaded('relationships'),
-                fn () => $this->relationships->map(fn ($related) => [
-                    'contact_id' => $related->id,
-                    'name' => $related->name,
-                    'avatar' => $related->avatar,
-                    'relationship_type' => null,
-                ])
-            ),
+            // Bidirectional, directional relationships (e.g. a contact listed
+            // as someone's daughter shows that person as her parent), each with
+            // its relationship label and group (Family / Love / …).
+            'relationships' => $this->relationshipsList($request),
 
             // Family associations — partner(s) + children — always present so
             // clients can surface them on every contact.
