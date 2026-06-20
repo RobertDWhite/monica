@@ -436,7 +436,7 @@ class ContactTest extends TestCase
         $this->assertEquals(
             [
                 'type' => 'url',
-                'content' => 'https://ucarecdn.com/123/-/scale_crop/300x300/smart/-/format/auto/-/quality/smart_retina/',
+                'content' => $file->cdn_url,
             ],
             $contact->avatar
         );
