@@ -34,8 +34,28 @@ class VaultContactApiController extends ApiController
     {
         $vault = $request->user()->account->vaults()->findOrFail($vaultId);
 
-        $contacts = $vault->contacts()
-            ->with(['file'])
+        $query = $vault->contacts()->with(['file']);
+
+        // Hide unlisted ("secondary") contacts from the browse list. They stay
+        // reachable via a search query or an explicit include_unlisted flag
+        // (e.g. the relationship picker).
+        $includeUnlisted = $request->boolean('include_unlisted');
+
+        if ($search = trim((string) $request->input('query'))) {
+            $includeUnlisted = true;
+            $query->where(function ($sub) use ($search) {
+                $sub->where('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('middle_name', 'like', "%{$search}%")
+                    ->orWhere('nickname', 'like', "%{$search}%");
+            });
+        }
+
+        if (! $includeUnlisted) {
+            $query->where('listed', true);
+        }
+
+        $contacts = $query->orderBy('last_name')->orderBy('first_name')
             ->paginate($this->getLimitPerPage());
 
         return ContactResource::collection($contacts);
@@ -109,6 +129,10 @@ class VaultContactApiController extends ApiController
             'gender_id' => $request->input('gender_id'),
             'pronoun_id' => $request->input('pronoun_id'),
         ];
+
+        if ($request->has('listed')) {
+            $data['listed'] = $request->boolean('listed');
+        }
 
         $contact = (new UpdateContact)->execute($data);
 

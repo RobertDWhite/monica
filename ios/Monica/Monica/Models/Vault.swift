@@ -17,3 +17,9 @@ struct Vault: Identifiable, Codable, Hashable {
 struct VaultResponse: Codable {
     let data: [Vault]
 }
+
+
+struct VaultPayload: Encodable {
+    var name: String
+    var description: String?
+}

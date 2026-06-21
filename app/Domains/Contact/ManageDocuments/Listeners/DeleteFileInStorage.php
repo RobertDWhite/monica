@@ -34,9 +34,34 @@ class DeleteFileInStorage
     public function handle(FileDeleted $event)
     {
         $this->file = $event->file;
-        $this->checkAPIKeyPresence();
+
+        // On self-hosted instances without Uploadcare configured, files are
+        // stored on the local public disk. Delete them there instead of
+        // calling Uploadcare (which would throw on missing keys).
+        if (is_null(config('services.uploadcare.private_key')) || is_null(config('services.uploadcare.public_key'))) {
+            $this->deleteLocalFile();
+
+            return;
+        }
+
         $this->getFileFromUploadcare();
         $this->deleteFile();
+    }
+
+    private function deleteLocalFile(): void
+    {
+        $url = $this->file->cdn_url ?? $this->file->original_url;
+        if (! $url) {
+            return;
+        }
+        $path = parse_url($url, PHP_URL_PATH);
+        if (! $path) {
+            return;
+        }
+        $relative = preg_replace('#^/storage/#', '', $path);
+        if ($relative !== null && $relative !== $path) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($relative);
+        }
     }
 
     private function checkAPIKeyPresence(): void

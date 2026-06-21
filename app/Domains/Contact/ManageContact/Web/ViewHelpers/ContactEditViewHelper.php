@@ -33,6 +33,7 @@ class ContactEditViewHelper
                 'gender_id' => $contact->gender_id,
                 'prefix' => $contact->prefix,
                 'suffix' => $contact->suffix,
+                'listed' => $contact->listed,
             ],
             'genders' => $genderCollection,
             'url' => [

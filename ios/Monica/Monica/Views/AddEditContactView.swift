@@ -11,10 +11,14 @@ struct AddEditContactView: View {
     @State private var firstName = ""
     @State private var lastName = ""
     @State private var middleName = ""
+    @State private var maidenName = ""
     @State private var nickname = ""
     @State private var prefix = ""
     @State private var suffix = ""
     @State private var listed = true
+    @State private var genderId: Int?
+    @State private var pronounId: Int?
+    @State private var reference: ReferenceData?
     @State private var isSaving = false
     @State private var errorMessage: String?
 
@@ -49,7 +53,23 @@ struct AddEditContactView: View {
                     TextField("First name", text: $firstName)
                     TextField("Middle name", text: $middleName)
                     TextField("Last name", text: $lastName)
+                    TextField("Maiden name", text: $maidenName)
                     TextField("Suffix", text: $suffix)
+                }
+
+                Section("Identity") {
+                    Picker("Gender", selection: $genderId) {
+                        Text("None").tag(Optional<Int>.none)
+                        ForEach(reference?.genders ?? []) { g in
+                            Text(g.displayName).tag(Optional(g.id))
+                        }
+                    }
+                    Picker("Pronoun", selection: $pronounId) {
+                        Text("None").tag(Optional<Int>.none)
+                        ForEach(reference?.pronouns ?? []) { p in
+                            Text(p.displayName).tag(Optional(p.id))
+                        }
+                    }
                 }
 
                 Section("Other") {
@@ -73,15 +93,19 @@ struct AddEditContactView: View {
                     }
                 }
             }
+            .task { reference = try? await api.reference(vaultId: vault.id) }
             .onAppear {
                 if let contact {
                     firstName = contact.firstName ?? ""
                     lastName = contact.lastName ?? ""
                     middleName = contact.middleName ?? ""
+                    maidenName = contact.maidenName ?? ""
                     nickname = contact.nickname ?? ""
                     prefix = contact.prefix ?? ""
                     suffix = contact.suffix ?? ""
                     listed = contact.listed
+                    genderId = contact.genderId
+                    pronounId = contact.pronounId
                 }
             }
         }
@@ -95,9 +119,12 @@ struct AddEditContactView: View {
             lastName: lastName,
             middleName: middleName,
             nickname: nickname,
+            maidenName: maidenName,
             prefix: prefix,
             suffix: suffix,
-            listed: listed
+            listed: listed,
+            genderId: genderId,
+            pronounId: pronounId
         )
         do {
             let saved: Contact

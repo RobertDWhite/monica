@@ -22,6 +22,7 @@ class ContactResource extends JsonResource
     {
         return [
             'file',
+            'files',
             'gender',
             'pronoun',
             'religion',
@@ -70,6 +71,7 @@ class ContactResource extends JsonResource
                 'name' => $r['contact']['name'],
                 'avatar' => $r['contact']['avatar'],
                 'relationship_type' => $r['relationship_type']['name'],
+                'relationship_type_id' => $r['relationship_type']['id'],
                 'group' => $group['name'],
             ]))
             ->values()
@@ -112,8 +114,11 @@ class ContactResource extends JsonResource
 
             // Simple BelongsTo fields (no extra query when eager loaded)
             'gender' => $this->gender?->name,
+            'gender_id' => $this->gender_id,
             'pronoun' => $this->pronoun?->name,
+            'pronoun_id' => $this->pronoun_id,
             'religion' => $this->religion?->name,
+            'religion_id' => $this->religion_id,
             'job_position' => $this->job_position,
             'company' => $this->company ? [
                 'id' => $this->company->id,

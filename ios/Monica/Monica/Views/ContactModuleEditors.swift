@@ -565,3 +565,730 @@ struct AddressEditorView: View {
         isSaving = false
     }
 }
+
+// MARK: - Pet
+
+struct PetEditorView: View {
+    @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
+
+    let vault: Vault
+    let contact: Contact
+    let existing: ContactPet?
+    let onSaved: (Contact) -> Void
+
+    @State private var name = ""
+    @State private var categories: [ReferenceType] = []
+    @State private var categoryId: Int?
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+
+    private var api: MonicaAPI { MonicaAPI(baseURL: appState.serverURL, token: appState.apiToken) }
+
+    var body: some View {
+        EditorScaffold(
+            title: existing == nil ? "New Pet" : "Edit Pet",
+            canSave: categoryId != nil,
+            errorMessage: $errorMessage,
+            isSaving: $isSaving,
+            onSave: save
+        ) {
+            Section("Category") {
+                Picker("Category", selection: $categoryId) {
+                    ForEach(categories) { c in Text(c.displayName).tag(Optional(c.id)) }
+                }
+            }
+            Section("Name") { TextField("Name (optional)", text: $name) }
+        }
+        .task { await loadCategories() }
+        .onAppear { name = existing?.name ?? "" }
+    }
+
+    private func loadCategories() async {
+        do {
+            let ref = try await api.reference(vaultId: vault.id)
+            categories = ref.petCategories
+            categoryId = categories.first(where: { $0.displayName == existing?.category })?.id ?? categories.first?.id
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    private func save() async {
+        guard let categoryId else { return }
+        isSaving = true; errorMessage = nil
+        let payload = PetPayload(petCategoryId: categoryId, name: name.isEmpty ? nil : name)
+        do {
+            let updated = existing == nil
+                ? try await api.createPet(vaultId: vault.id, contactId: contact.id, payload: payload)
+                : try await api.updatePet(vaultId: vault.id, contactId: contact.id, petId: existing!.id, payload: payload)
+            onSaved(updated); dismiss()
+        } catch { errorMessage = error.localizedDescription }
+        isSaving = false
+    }
+}
+
+// MARK: - Goal
+
+struct GoalEditorView: View {
+    @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
+
+    let vault: Vault
+    let contact: Contact
+    let existing: ContactGoal?
+    let onSaved: (Contact) -> Void
+
+    @State private var name = ""
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+
+    private var api: MonicaAPI { MonicaAPI(baseURL: appState.serverURL, token: appState.apiToken) }
+
+    var body: some View {
+        EditorScaffold(
+            title: existing == nil ? "New Goal" : "Edit Goal",
+            canSave: !name.trimmingCharacters(in: .whitespaces).isEmpty,
+            errorMessage: $errorMessage,
+            isSaving: $isSaving,
+            onSave: save
+        ) {
+            Section("Goal") { TextField("e.g. Call every week", text: $name) }
+        }
+        .onAppear { name = existing?.name ?? "" }
+    }
+
+    private func save() async {
+        isSaving = true; errorMessage = nil
+        let payload = GoalPayload(name: name)
+        do {
+            let updated = existing == nil
+                ? try await api.createGoal(vaultId: vault.id, contactId: contact.id, payload: payload)
+                : try await api.updateGoal(vaultId: vault.id, contactId: contact.id, goalId: existing!.id, payload: payload)
+            onSaved(updated); dismiss()
+        } catch { errorMessage = error.localizedDescription }
+        isSaving = false
+    }
+}
+
+// MARK: - Quick fact
+
+struct QuickFactEditorView: View {
+    @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
+
+    let vault: Vault
+    let contact: Contact
+    let existing: ContactQuickFact?
+    let onSaved: (Contact) -> Void
+
+    @State private var content = ""
+    @State private var templates: [ReferenceType] = []
+    @State private var templateId: Int?
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+
+    private var api: MonicaAPI { MonicaAPI(baseURL: appState.serverURL, token: appState.apiToken) }
+
+    var body: some View {
+        EditorScaffold(
+            title: existing == nil ? "New Quick Fact" : "Edit Quick Fact",
+            canSave: !content.trimmingCharacters(in: .whitespaces).isEmpty && (existing != nil || templateId != nil),
+            errorMessage: $errorMessage,
+            isSaving: $isSaving,
+            onSave: save
+        ) {
+            if existing == nil {
+                Section("Label") {
+                    Picker("Label", selection: $templateId) {
+                        ForEach(templates) { t in Text(t.displayName).tag(Optional(t.id)) }
+                    }
+                }
+            }
+            Section("Fact") {
+                TextField("e.g. Allergic to peanuts", text: $content, axis: .vertical).lineLimit(2...5)
+            }
+        }
+        .task {
+            if existing == nil {
+                let ref = try? await api.reference(vaultId: vault.id)
+                templates = ref?.quickFactTemplates ?? []
+                templateId = templates.first?.id
+            }
+        }
+        .onAppear { content = existing?.content ?? "" }
+    }
+
+    private func save() async {
+        isSaving = true; errorMessage = nil
+        let payload = QuickFactPayload(vaultQuickFactsTemplateId: templateId, content: content)
+        do {
+            let updated = existing == nil
+                ? try await api.createQuickFact(vaultId: vault.id, contactId: contact.id, payload: payload)
+                : try await api.updateQuickFact(vaultId: vault.id, contactId: contact.id, quickFactId: existing!.id, payload: payload)
+            onSaved(updated); dismiss()
+        } catch { errorMessage = error.localizedDescription }
+        isSaving = false
+    }
+}
+
+// MARK: - Mood
+
+struct MoodEditorView: View {
+    @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
+
+    let vault: Vault
+    let contact: Contact
+    let existing: ContactMoodEvent?
+    let onSaved: (Contact) -> Void
+
+    @State private var parameters: [MoodParameterRef] = []
+    @State private var parameterId: Int?
+    @State private var ratedAt = Date()
+    @State private var note = ""
+    @State private var hasSleep = false
+    @State private var hoursSlept = 8
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+
+    private var api: MonicaAPI { MonicaAPI(baseURL: appState.serverURL, token: appState.apiToken) }
+
+    var body: some View {
+        EditorScaffold(
+            title: existing == nil ? "Record Mood" : "Edit Mood",
+            canSave: parameterId != nil,
+            errorMessage: $errorMessage,
+            isSaving: $isSaving,
+            onSave: save
+        ) {
+            Section("Mood") {
+                Picker("Mood", selection: $parameterId) {
+                    ForEach(parameters) { p in Text(p.label ?? "Mood").tag(Optional(p.id)) }
+                }
+                DatePicker("When", selection: $ratedAt, displayedComponents: .date)
+            }
+            Section("Sleep") {
+                Toggle("Track hours slept", isOn: $hasSleep)
+                if hasSleep { Stepper("\(hoursSlept)h", value: $hoursSlept, in: 0...24) }
+            }
+            Section("Note") {
+                TextField("Optional note", text: $note, axis: .vertical).lineLimit(2...5)
+            }
+        }
+        .task { await loadParameters() }
+        .onAppear {
+            note = existing?.note ?? ""
+            if let h = existing?.hoursSlept { hasSleep = true; hoursSlept = Int(h) }
+            if let s = existing?.ratedAt, let d = ISO8601DateFormatter().date(from: s) { ratedAt = d }
+        }
+    }
+
+    private func loadParameters() async {
+        do {
+            let ref = try await api.reference(vaultId: vault.id)
+            parameters = ref.moodParameters
+            parameterId = parameters.first(where: { $0.label == existing?.label })?.id ?? parameters.first?.id
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    private func save() async {
+        guard let parameterId else { return }
+        isSaving = true; errorMessage = nil
+        let payload = MoodPayload(
+            moodTrackingParameterId: parameterId,
+            ratedAt: apiDateFormatter.string(from: ratedAt),
+            note: note.isEmpty ? nil : note,
+            numberOfHoursSlept: hasSleep ? hoursSlept : nil
+        )
+        do {
+            let updated = existing == nil
+                ? try await api.createMood(vaultId: vault.id, contactId: contact.id, payload: payload)
+                : try await api.updateMood(vaultId: vault.id, contactId: contact.id, eventId: existing!.id, payload: payload)
+            onSaved(updated); dismiss()
+        } catch { errorMessage = error.localizedDescription }
+        isSaving = false
+    }
+}
+
+// MARK: - Loan
+
+struct LoanEditorView: View {
+    @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
+
+    let vault: Vault
+    let contact: Contact
+    let existing: ContactLoan?
+    let onSaved: (Contact) -> Void
+
+    @State private var type = "object"
+    @State private var name = ""
+    @State private var description = ""
+    @State private var contactOwes = true   // true: contact owes me; false: I owe contact
+    @State private var hasAmount = false
+    @State private var amount = 0
+    @State private var loanedAt = Date()
+    @State private var currencies: [CurrencyRef] = []
+    @State private var currencyId: Int?
+    @State private var meContactId: String?
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+
+    private var api: MonicaAPI { MonicaAPI(baseURL: appState.serverURL, token: appState.apiToken) }
+
+    var body: some View {
+        EditorScaffold(
+            title: existing == nil ? "New Loan" : "Edit Loan",
+            canSave: !name.trimmingCharacters(in: .whitespaces).isEmpty && meContactId != nil,
+            errorMessage: $errorMessage,
+            isSaving: $isSaving,
+            onSave: save
+        ) {
+            Section {
+                Picker("Type", selection: $type) {
+                    Text("Object").tag("object")
+                    Text("Money").tag("money")
+                }
+                Picker("Direction", selection: $contactOwes) {
+                    Text("\(contact.displayName) owes me").tag(true)
+                    Text("I owe \(contact.displayName)").tag(false)
+                }
+            }
+            Section("Details") {
+                TextField("What was loaned", text: $name)
+                TextField("Notes (optional)", text: $description, axis: .vertical).lineLimit(2...4)
+                DatePicker("Date", selection: $loanedAt, displayedComponents: .date)
+            }
+            if type == "money" {
+                Section("Amount") {
+                    Toggle("Set amount", isOn: $hasAmount)
+                    if hasAmount {
+                        Stepper("\(amount)", value: $amount, in: 0...1000000, step: 1)
+                        if !currencies.isEmpty {
+                            Picker("Currency", selection: $currencyId) {
+                                ForEach(currencies) { c in Text(c.code).tag(Optional(c.id)) }
+                            }
+                        }
+                    }
+                }
+            }
+            if meContactId == nil {
+                Section {
+                    Text("Your own contact isn't set up in this vault, so loans can't be attributed.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .task { await loadReference() }
+        .onAppear {
+            name = existing?.name ?? ""
+            description = existing?.description ?? ""
+            contactOwes = existing?.direction == "lent" ? false : true
+            if let a = existing?.amount, a > 0 { hasAmount = true; amount = Int(a); type = "money" }
+        }
+    }
+
+    private func loadReference() async {
+        do {
+            let ref = try await api.reference(vaultId: vault.id)
+            currencies = ref.currencies
+            currencyId = currencies.first?.id
+            meContactId = ref.meContactId
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    private func save() async {
+        guard let meContactId else { return }
+        isSaving = true; errorMessage = nil
+        // contactOwes: contact is the loanee (borrower), I am the loaner (lender)
+        let loaners = contactOwes ? [meContactId] : [contact.id]
+        let loanees = contactOwes ? [contact.id] : [meContactId]
+        let payload = LoanPayload(
+            type: type,
+            name: name,
+            description: description.isEmpty ? nil : description,
+            amountLent: (type == "money" && hasAmount) ? amount : nil,
+            currencyId: (type == "money" && hasAmount) ? currencyId : nil,
+            loanedAt: apiDateFormatter.string(from: loanedAt),
+            loanerIds: loaners,
+            loaneeIds: loanees
+        )
+        do {
+            let updated = existing == nil
+                ? try await api.createLoan(vaultId: vault.id, contactId: contact.id, payload: payload)
+                : try await api.updateLoan(vaultId: vault.id, contactId: contact.id, loanId: existing!.id, payload: payload)
+            onSaved(updated); dismiss()
+        } catch { errorMessage = error.localizedDescription }
+        isSaving = false
+    }
+}
+
+// MARK: - Relationship
+
+struct RelationshipEditorView: View {
+    @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
+
+    let vault: Vault
+    let contact: Contact
+    let onSaved: (Contact) -> Void
+
+    @State private var types: [RelationshipTypeRef] = []
+    @State private var typeId: Int?
+    @State private var contacts: [Contact] = []
+    @State private var otherContactId: String?
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+
+    private var api: MonicaAPI { MonicaAPI(baseURL: appState.serverURL, token: appState.apiToken) }
+
+    var body: some View {
+        EditorScaffold(
+            title: "Add Relationship",
+            canSave: typeId != nil && otherContactId != nil,
+            errorMessage: $errorMessage,
+            isSaving: $isSaving,
+            onSave: save
+        ) {
+            Section("Relationship") {
+                Picker("Type", selection: $typeId) {
+                    Text("Select…").tag(Optional<Int>.none)
+                    ForEach(types) { t in
+                        Text(t.group != nil ? "\(t.displayName) (\(t.group!))" : t.displayName).tag(Optional(t.id))
+                    }
+                }
+            }
+            Section("Person") {
+                Picker("Person", selection: $otherContactId) {
+                    Text("Select…").tag(Optional<String>.none)
+                    ForEach(contacts.filter { $0.id != contact.id }) { c in
+                        Text(c.displayName).tag(Optional(c.id))
+                    }
+                }
+            }
+        }
+        .task { await load() }
+    }
+
+    private func load() async {
+        do {
+            async let ref = api.reference(vaultId: vault.id)
+            async let list = api.contacts(vaultId: vault.id)
+            types = try await ref.relationshipTypes
+            contacts = try await list
+            typeId = types.first?.id
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    private func save() async {
+        guard let typeId, let otherContactId else { return }
+        isSaving = true; errorMessage = nil
+        let payload = RelationshipPayload(relationshipTypeId: typeId, otherContactId: otherContactId)
+        do {
+            let updated = try await api.setRelationship(vaultId: vault.id, contactId: contact.id, payload: payload)
+            onSaved(updated); dismiss()
+        } catch { errorMessage = error.localizedDescription }
+        isSaving = false
+    }
+}
+
+// MARK: - Label
+
+struct LabelEditorView: View {
+    @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
+
+    let vault: Vault
+    let contact: Contact
+    let onSaved: (Contact) -> Void
+
+    @State private var labels: [ContactLabel] = []
+    @State private var labelId: Int?
+    @State private var newName = ""
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+
+    private var api: MonicaAPI { MonicaAPI(baseURL: appState.serverURL, token: appState.apiToken) }
+
+    var body: some View {
+        EditorScaffold(
+            title: "Add Label",
+            canSave: labelId != nil || !newName.trimmingCharacters(in: .whitespaces).isEmpty,
+            errorMessage: $errorMessage,
+            isSaving: $isSaving,
+            onSave: save
+        ) {
+            if !labels.isEmpty {
+                Section("Existing label") {
+                    Picker("Label", selection: $labelId) {
+                        Text("None").tag(Optional<Int>.none)
+                        ForEach(labels) { l in Text(l.name).tag(Optional(l.id)) }
+                    }
+                }
+            }
+            Section("Or create new") {
+                TextField("New label name", text: $newName)
+            }
+        }
+        .task { labels = (try? await api.reference(vaultId: vault.id))?.labels ?? [] }
+    }
+
+    private func save() async {
+        isSaving = true; errorMessage = nil
+        let trimmed = newName.trimmingCharacters(in: .whitespaces)
+        let payload = trimmed.isEmpty
+            ? LabelPayload(labelId: labelId, name: nil)
+            : LabelPayload(labelId: nil, name: trimmed)
+        do {
+            let updated = try await api.assignLabel(vaultId: vault.id, contactId: contact.id, payload: payload)
+            onSaved(updated); dismiss()
+        } catch { errorMessage = error.localizedDescription }
+        isSaving = false
+    }
+}
+
+// MARK: - Group
+
+struct GroupEditorView: View {
+    @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
+
+    let vault: Vault
+    let contact: Contact
+    let onSaved: (Contact) -> Void
+
+    @State private var groups: [ContactGroup] = []
+    @State private var groupId: Int?
+    @State private var groupTypes: [GroupTypeRef] = []
+    @State private var groupTypeId: Int?
+    @State private var newName = ""
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+
+    private var api: MonicaAPI { MonicaAPI(baseURL: appState.serverURL, token: appState.apiToken) }
+
+    var body: some View {
+        EditorScaffold(
+            title: "Add to Group",
+            canSave: groupId != nil || !newName.trimmingCharacters(in: .whitespaces).isEmpty,
+            errorMessage: $errorMessage,
+            isSaving: $isSaving,
+            onSave: save
+        ) {
+            if !groups.isEmpty {
+                Section("Existing group") {
+                    Picker("Group", selection: $groupId) {
+                        Text("None").tag(Optional<Int>.none)
+                        ForEach(groups) { g in Text(g.name).tag(Optional(g.id)) }
+                    }
+                }
+            }
+            Section("Or create new") {
+                TextField("New group name", text: $newName)
+                if !groupTypes.isEmpty {
+                    Picker("Type", selection: $groupTypeId) {
+                        Text("None").tag(Optional<Int>.none)
+                        ForEach(groupTypes) { t in Text(t.label ?? "Type").tag(Optional(t.id)) }
+                    }
+                }
+            }
+        }
+        .task {
+            let ref = try? await api.reference(vaultId: vault.id)
+            groups = ref?.groups ?? []
+            groupTypes = ref?.groupTypes ?? []
+        }
+    }
+
+    private func save() async {
+        isSaving = true; errorMessage = nil
+        let trimmed = newName.trimmingCharacters(in: .whitespaces)
+        let payload = trimmed.isEmpty
+            ? GroupPayload(groupId: groupId, name: nil, groupTypeId: nil)
+            : GroupPayload(groupId: nil, name: trimmed, groupTypeId: groupTypeId)
+        do {
+            let updated = try await api.addGroup(vaultId: vault.id, contactId: contact.id, payload: payload)
+            onSaved(updated); dismiss()
+        } catch { errorMessage = error.localizedDescription }
+        isSaving = false
+    }
+}
+
+// MARK: - Religion
+
+struct ReligionEditorView: View {
+    @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
+
+    let vault: Vault
+    let contact: Contact
+    let onSaved: (Contact) -> Void
+
+    @State private var religions: [ReferenceType] = []
+    @State private var religionId: Int?
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+
+    private var api: MonicaAPI { MonicaAPI(baseURL: appState.serverURL, token: appState.apiToken) }
+
+    var body: some View {
+        EditorScaffold(
+            title: "Religion",
+            canSave: religionId != nil,
+            errorMessage: $errorMessage,
+            isSaving: $isSaving,
+            onSave: save
+        ) {
+            Section("Religion") {
+                Picker("Religion", selection: $religionId) {
+                    ForEach(religions) { r in Text(r.displayName).tag(Optional(r.id)) }
+                }
+            }
+        }
+        .task {
+            religions = (try? await api.reference(vaultId: vault.id))?.religions ?? []
+            religionId = contact.religionId ?? religions.first?.id
+        }
+    }
+
+    private func save() async {
+        isSaving = true; errorMessage = nil
+        let payload = ReligionPayload(religionId: religionId)
+        do {
+            let updated = try await api.updateReligion(vaultId: vault.id, contactId: contact.id, payload: payload)
+            onSaved(updated); dismiss()
+        } catch { errorMessage = error.localizedDescription }
+        isSaving = false
+    }
+}
+
+// MARK: - Life event
+
+struct LifeEventEditorView: View {
+    @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
+
+    let vault: Vault
+    let contact: Contact
+    let onSaved: (Contact) -> Void
+
+    @State private var categories: [LifeEventCategoryRef] = []
+    @State private var typeId: Int?
+    @State private var summary = ""
+    @State private var description = ""
+    @State private var happenedAt = Date()
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+
+    private var api: MonicaAPI { MonicaAPI(baseURL: appState.serverURL, token: appState.apiToken) }
+
+    var body: some View {
+        EditorScaffold(
+            title: "New Life Event",
+            canSave: typeId != nil,
+            errorMessage: $errorMessage,
+            isSaving: $isSaving,
+            onSave: save
+        ) {
+            Section("Type") {
+                Picker("Type", selection: $typeId) {
+                    Text("Select…").tag(Optional<Int>.none)
+                    ForEach(categories) { cat in
+                        ForEach(cat.types) { t in
+                            Text("\(cat.label ?? "") · \(t.label ?? "")").tag(Optional(t.id))
+                        }
+                    }
+                }
+            }
+            Section("Details") {
+                TextField("Summary", text: $summary)
+                TextField("Description (optional)", text: $description, axis: .vertical).lineLimit(2...5)
+                DatePicker("When", selection: $happenedAt, displayedComponents: .date)
+            }
+        }
+        .task {
+            categories = (try? await api.reference(vaultId: vault.id))?.lifeEventCategories ?? []
+            typeId = categories.first?.types.first?.id
+        }
+    }
+
+    private func save() async {
+        guard let typeId else { return }
+        isSaving = true; errorMessage = nil
+        let payload = LifeEventPayload(
+            lifeEventTypeId: typeId,
+            summary: summary.isEmpty ? nil : summary,
+            description: description.isEmpty ? nil : description,
+            happenedAt: apiDateFormatter.string(from: happenedAt),
+            costs: nil,
+            currencyId: nil
+        )
+        do {
+            let updated = try await api.createLifeEvent(vaultId: vault.id, contactId: contact.id, payload: payload)
+            onSaved(updated); dismiss()
+        } catch { errorMessage = error.localizedDescription }
+        isSaving = false
+    }
+}
+
+// MARK: - Job information
+
+struct JobEditorView: View {
+    @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
+
+    let vault: Vault
+    let contact: Contact
+    let onSaved: (Contact) -> Void
+
+    @State private var jobPosition = ""
+    @State private var companies: [ContactCompany] = []
+    @State private var companyId: Int?
+    @State private var newCompany = ""
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+
+    private var api: MonicaAPI { MonicaAPI(baseURL: appState.serverURL, token: appState.apiToken) }
+
+    var body: some View {
+        EditorScaffold(
+            title: "Job & Company",
+            canSave: true,
+            errorMessage: $errorMessage,
+            isSaving: $isSaving,
+            onSave: save
+        ) {
+            Section("Job") {
+                TextField("Job title", text: $jobPosition)
+            }
+            Section("Company") {
+                if !companies.isEmpty {
+                    Picker("Company", selection: $companyId) {
+                        Text("None").tag(Optional<Int>.none)
+                        ForEach(companies, id: \.id) { c in Text(c.name).tag(Optional(c.id)) }
+                    }
+                }
+                TextField("Or new company", text: $newCompany)
+            }
+        }
+        .task { companies = (try? await api.reference(vaultId: vault.id))?.companies ?? [] }
+        .onAppear {
+            jobPosition = contact.jobPosition ?? ""
+            companyId = contact.company?.id
+        }
+    }
+
+    private func save() async {
+        isSaving = true; errorMessage = nil
+        let trimmed = newCompany.trimmingCharacters(in: .whitespaces)
+        let payload = JobPayload(
+            jobPosition: jobPosition.isEmpty ? nil : jobPosition,
+            companyId: trimmed.isEmpty ? companyId : nil,
+            companyName: trimmed.isEmpty ? nil : trimmed
+        )
+        do {
+            let updated = try await api.updateJob(vaultId: vault.id, contactId: contact.id, payload: payload)
+            onSaved(updated); dismiss()
+        } catch { errorMessage = error.localizedDescription }
+        isSaving = false
+    }
+}

@@ -38,11 +38,35 @@ final class MonicaAPI {
         return response.data
     }
 
+    func createVault(payload: VaultPayload) async throws -> Vault {
+        let w: SingleVaultResponse = try await post("/api/vaults", body: payload)
+        return w.data
+    }
+    func updateVault(vaultId: String, payload: VaultPayload) async throws -> Vault {
+        let w: SingleVaultResponse = try await put("/api/vaults/\(vaultId)", body: payload)
+        return w.data
+    }
+    func deleteVault(vaultId: String) async throws {
+        try await delete("/api/vaults/\(vaultId)")
+    }
+
     // MARK: - Contacts
 
     func contacts(vaultId: String) async throws -> [Contact] {
-        let response: ContactResponse = try await get("/api/vaults/\(vaultId)/contacts")
+        // include_unlisted: this no-query fetch backs the relationship picker,
+        // which must be able to link to hidden ("secondary") contacts too.
+        let response: ContactResponse = try await get("/api/vaults/\(vaultId)/contacts?include_unlisted=1")
         return response.data
+    }
+
+    func searchContacts(vaultId: String, query: String, page: Int) async throws -> (data: [Contact], hasMore: Bool) {
+        var path = "/api/vaults/\(vaultId)/contacts?limit=100&page=\(page)"
+        if !query.isEmpty, let enc = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            path += "&query=\(enc)"
+        }
+        let resp: ContactResponse = try await get(path)
+        let hasMore = (resp.meta?.currentPage ?? 1) < (resp.meta?.lastPage ?? 1)
+        return (resp.data, hasMore)
     }
 
     func contact(vaultId: String, contactId: String) async throws -> Contact {
@@ -62,6 +86,20 @@ final class MonicaAPI {
 
     func deleteContact(vaultId: String, contactId: String) async throws {
         try await delete("/api/vaults/\(vaultId)/contacts/\(contactId)")
+    }
+
+    // MARK: - Vault dashboard
+    func vaultTasks(vaultId: String) async throws -> [VaultTask] {
+        let r: DataResponse<VaultTask> = try await get("/api/vaults/\(vaultId)/dashboard/tasks")
+        return r.data
+    }
+    func vaultReminders(vaultId: String) async throws -> [VaultReminderItem] {
+        let r: DataResponse<VaultReminderItem> = try await get("/api/vaults/\(vaultId)/dashboard/reminders")
+        return r.data
+    }
+    func vaultPosts(vaultId: String) async throws -> [VaultPostItem] {
+        let r: DataResponse<VaultPostItem> = try await get("/api/vaults/\(vaultId)/dashboard/posts")
+        return r.data
     }
 
     // MARK: - Reference data
@@ -160,6 +198,142 @@ final class MonicaAPI {
         try await mutateNoBody(base(vaultId, contactId) + "/addresses/\(addressId)", method: "DELETE")
     }
 
+    // Pets
+    func createPet(vaultId: String, contactId: String, payload: PetPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/pets", method: "POST", body: payload)
+    }
+    func updatePet(vaultId: String, contactId: String, petId: Int, payload: PetPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/pets/\(petId)", method: "PUT", body: payload)
+    }
+    func deletePet(vaultId: String, contactId: String, petId: Int) async throws -> Contact {
+        try await mutateNoBody(base(vaultId, contactId) + "/pets/\(petId)", method: "DELETE")
+    }
+
+    // Goals
+    func createGoal(vaultId: String, contactId: String, payload: GoalPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/goals", method: "POST", body: payload)
+    }
+    func updateGoal(vaultId: String, contactId: String, goalId: Int, payload: GoalPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/goals/\(goalId)", method: "PUT", body: payload)
+    }
+    func deleteGoal(vaultId: String, contactId: String, goalId: Int) async throws -> Contact {
+        try await mutateNoBody(base(vaultId, contactId) + "/goals/\(goalId)", method: "DELETE")
+    }
+    func toggleGoalStreak(vaultId: String, contactId: String, goalId: Int) async throws -> Contact {
+        try await mutateNoBody(base(vaultId, contactId) + "/goals/\(goalId)/streak", method: "POST")
+    }
+
+    // Quick facts
+    func createQuickFact(vaultId: String, contactId: String, payload: QuickFactPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/quick-facts", method: "POST", body: payload)
+    }
+    func updateQuickFact(vaultId: String, contactId: String, quickFactId: Int, payload: QuickFactPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/quick-facts/\(quickFactId)", method: "PUT", body: payload)
+    }
+    func deleteQuickFact(vaultId: String, contactId: String, quickFactId: Int) async throws -> Contact {
+        try await mutateNoBody(base(vaultId, contactId) + "/quick-facts/\(quickFactId)", method: "DELETE")
+    }
+    func toggleQuickFacts(vaultId: String, contactId: String) async throws -> Contact {
+        try await mutateNoBody(base(vaultId, contactId) + "/quick-facts/toggle", method: "POST")
+    }
+
+    // Mood tracking
+    func createMood(vaultId: String, contactId: String, payload: MoodPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/mood-tracking", method: "POST", body: payload)
+    }
+    func updateMood(vaultId: String, contactId: String, eventId: Int, payload: MoodPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/mood-tracking/\(eventId)", method: "PUT", body: payload)
+    }
+    func deleteMood(vaultId: String, contactId: String, eventId: Int) async throws -> Contact {
+        try await mutateNoBody(base(vaultId, contactId) + "/mood-tracking/\(eventId)", method: "DELETE")
+    }
+
+    // Loans
+    func createLoan(vaultId: String, contactId: String, payload: LoanPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/loans", method: "POST", body: payload)
+    }
+    func updateLoan(vaultId: String, contactId: String, loanId: Int, payload: LoanPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/loans/\(loanId)", method: "PUT", body: payload)
+    }
+    func deleteLoan(vaultId: String, contactId: String, loanId: Int) async throws -> Contact {
+        try await mutateNoBody(base(vaultId, contactId) + "/loans/\(loanId)", method: "DELETE")
+    }
+    func toggleLoan(vaultId: String, contactId: String, loanId: Int) async throws -> Contact {
+        try await mutateNoBody(base(vaultId, contactId) + "/loans/\(loanId)/toggle", method: "POST")
+    }
+
+    // Relationships
+    func setRelationship(vaultId: String, contactId: String, payload: RelationshipPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/relationships", method: "POST", body: payload)
+    }
+    func unsetRelationship(vaultId: String, contactId: String, payload: RelationshipPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/relationships", method: "DELETE", body: payload)
+    }
+
+    // Labels
+    func assignLabel(vaultId: String, contactId: String, payload: LabelPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/labels", method: "POST", body: payload)
+    }
+    func removeLabel(vaultId: String, contactId: String, labelId: Int) async throws -> Contact {
+        try await mutateNoBody(base(vaultId, contactId) + "/labels/\(labelId)", method: "DELETE")
+    }
+
+    // Groups
+    func addGroup(vaultId: String, contactId: String, payload: GroupPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/groups", method: "POST", body: payload)
+    }
+    func removeGroup(vaultId: String, contactId: String, groupId: Int) async throws -> Contact {
+        try await mutateNoBody(base(vaultId, contactId) + "/groups/\(groupId)", method: "DELETE")
+    }
+
+    // Religion
+    func updateReligion(vaultId: String, contactId: String, payload: ReligionPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/religion", method: "PUT", body: payload)
+    }
+
+    // Life events
+    func createLifeEvent(vaultId: String, contactId: String, payload: LifeEventPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/life-events", method: "POST", body: payload)
+    }
+    func updateLifeEvent(vaultId: String, contactId: String, timelineId: Int, lifeEventId: Int, payload: LifeEventPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/life-events/\(timelineId)/\(lifeEventId)", method: "PUT", body: payload)
+    }
+    func deleteLifeEvent(vaultId: String, contactId: String, timelineId: Int, lifeEventId: Int) async throws -> Contact {
+        try await mutateNoBody(base(vaultId, contactId) + "/life-events/\(timelineId)/\(lifeEventId)", method: "DELETE")
+    }
+    func toggleLifeEvent(vaultId: String, contactId: String, timelineId: Int, lifeEventId: Int) async throws -> Contact {
+        try await mutateNoBody(base(vaultId, contactId) + "/life-events/\(timelineId)/\(lifeEventId)/toggle", method: "POST")
+    }
+
+    // Job information
+    func updateJob(vaultId: String, contactId: String, payload: JobPayload) async throws -> Contact {
+        try await mutate(base(vaultId, contactId) + "/job", method: "PUT", body: payload)
+    }
+
+    // Avatar
+    func uploadAvatar(vaultId: String, contactId: String, data: Data, fileName: String, mimeType: String) async throws -> Contact {
+        try await uploadMultipart(base(vaultId, contactId) + "/avatar", fieldName: "photo", fileName: fileName, mimeType: mimeType, data: data)
+    }
+    func deleteAvatar(vaultId: String, contactId: String) async throws -> Contact {
+        try await mutateNoBody(base(vaultId, contactId) + "/avatar", method: "DELETE")
+    }
+
+    // Photos
+    func uploadPhoto(vaultId: String, contactId: String, data: Data, fileName: String, mimeType: String) async throws -> Contact {
+        try await uploadMultipart(base(vaultId, contactId) + "/photos", fieldName: "photo", fileName: fileName, mimeType: mimeType, data: data)
+    }
+    func deletePhoto(vaultId: String, contactId: String, fileId: Int) async throws -> Contact {
+        try await mutateNoBody(base(vaultId, contactId) + "/photos/\(fileId)", method: "DELETE")
+    }
+
+    // Documents
+    func uploadDocument(vaultId: String, contactId: String, data: Data, fileName: String, mimeType: String) async throws -> Contact {
+        try await uploadMultipart(base(vaultId, contactId) + "/documents", fieldName: "document", fileName: fileName, mimeType: mimeType, data: data)
+    }
+    func deleteDocument(vaultId: String, contactId: String, fileId: Int) async throws -> Contact {
+        try await mutateNoBody(base(vaultId, contactId) + "/documents/\(fileId)", method: "DELETE")
+    }
+
     // MARK: - Mutation helpers
 
     private func mutate<B: Encodable>(_ path: String, method: String, body: B) async throws -> Contact {
@@ -174,6 +348,22 @@ final class MonicaAPI {
         let req = try request(for: path, method: method)
         let data = try await execute(req)
         do { return try JSONDecoder().decode(SingleContactResponse.self, from: data).data }
+        catch { throw APIError.decodingError(error) }
+    }
+
+    private func uploadMultipart(_ path: String, fieldName: String, fileName: String, mimeType: String, data: Data) async throws -> Contact {
+        let boundary = "Boundary-\(UUID().uuidString)"
+        var req = try request(for: path, method: "POST")
+        req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        var body = Data()
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"\(fieldName)\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append(data)
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        req.httpBody = body
+        let respData = try await execute(req)
+        do { return try JSONDecoder().decode(SingleContactResponse.self, from: respData).data }
         catch { throw APIError.decodingError(error) }
     }
 
@@ -237,4 +427,8 @@ final class MonicaAPI {
 
 private struct SingleContactResponse: Codable {
     let data: Contact
+}
+
+private struct SingleVaultResponse: Codable {
+    let data: Vault
 }

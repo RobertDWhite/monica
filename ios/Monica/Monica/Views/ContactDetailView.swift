@@ -187,26 +187,8 @@ struct ContactDetailView: View {
         }
     }
 
-    @ViewBuilder
     private var avatarImage: some View {
-        if let avatar = displayed.avatar, avatar.type == "url", let url = URL(string: avatar.content) {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image.resizable().scaledToFill()
-                default:
-                    personPlaceholder
-                }
-            }
-        } else {
-            personPlaceholder
-        }
-    }
-
-    private var personPlaceholder: some View {
-        Image(systemName: "person.circle.fill")
-            .resizable()
-            .foregroundStyle(.secondary)
+        CachedAvatarImage(avatar: displayed.avatar)
     }
 
     @ViewBuilder

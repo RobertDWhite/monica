@@ -488,7 +488,10 @@ class Contact extends VCardResource
 
                 if ($this->file) {
                     $type = self::AVATAR_TYPE_URL;
-                    $content = $this->file->cdn_url;
+                    // cdn_url is baked with APP_URL (the auth-gated public host).
+                    // Serve it as an origin-relative path so it loads from
+                    // whichever host serves the request, not the gated one.
+                    $content = parse_url($this->file->cdn_url, PHP_URL_PATH) ?: $this->file->cdn_url;
                 }
 
                 return [

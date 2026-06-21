@@ -22,6 +22,7 @@
 		B100000D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B200000D /* SettingsView.swift */; };
 		B100000E /* ContactAvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B200000E /* ContactAvatarView.swift */; };
 		B100000F /* ContactModuleEditors.swift in Sources */ = {isa = PBXBuildFile; fileRef = B200000F /* ContactModuleEditors.swift */; };
+		B1000010 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B2000010 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,6 +41,7 @@
 		B200000D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		B200000E /* ContactAvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactAvatarView.swift; sourceTree = "<group>"; };
 		B200000F /* ContactModuleEditors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactModuleEditors.swift; sourceTree = "<group>"; };
+		B2000010 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B300FFFE /* Monica.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Monica.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -67,6 +69,7 @@
 			children = (
 				B2000001 /* MonicaApp.swift */,
 				B2000002 /* AppState.swift */,
+				B2000010 /* Assets.xcassets */,
 				B600FFFC /* Models */,
 				B600FFFD /* Services */,
 				B600FFFE /* Views */,
@@ -174,6 +177,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B1000010 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

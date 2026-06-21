@@ -134,6 +134,20 @@
               :required="false"
               :maxlength="255"
               :label="$t('Suffix')" />
+
+            <!-- hide from the contacts list -->
+            <div class="relative flex items-start">
+              <input
+                id="hide-from-list"
+                :checked="!form.listed"
+                name="hide-from-list"
+                type="checkbox"
+                class="focus:ring-3 relative h-4 w-4 rounded-xs border border-gray-300 bg-gray-50 focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-800 dark:focus:ring-blue-600"
+                @change="form.listed = !$event.target.checked" />
+              <label for="hide-from-list" class="ms-2 block cursor-pointer text-sm text-gray-900 dark:text-white">
+                {{ $t('Hide this person from the contacts list') }}
+              </label>
+            </div>
           </div>
 
           <div class="flex justify-between p-5">
@@ -194,6 +208,7 @@ export default {
         prefix: '',
         suffix: '',
         gender_id: '',
+        listed: true,
         errors: [],
       },
     };
@@ -208,6 +223,7 @@ export default {
     this.form.gender_id = this.data.contact.gender_id;
     this.form.suffix = this.data.contact.suffix;
     this.form.prefix = this.data.contact.prefix;
+    this.form.listed = this.data.contact.listed;
   },
 
   methods: {

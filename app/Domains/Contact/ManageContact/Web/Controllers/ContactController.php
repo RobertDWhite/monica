@@ -154,6 +154,10 @@ class ContactController extends Controller
             'suffix' => $request->input('suffix'),
         ];
 
+        if ($request->has('listed')) {
+            $data['listed'] = $request->boolean('listed');
+        }
+
         $contact = (new UpdateContact)->execute($data);
 
         return response()->json([

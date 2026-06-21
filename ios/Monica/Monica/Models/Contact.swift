@@ -16,6 +16,9 @@ struct Contact: Identifiable, Codable, Hashable {
     let gender: String?
     let pronoun: String?
     let religion: String?
+    let genderId: Int?
+    let pronounId: Int?
+    let religionId: Int?
     let jobPosition: String?
     let company: ContactCompany?
     let contactInformations: [ContactInformation]?
@@ -52,6 +55,9 @@ struct Contact: Identifiable, Codable, Hashable {
         case prefix, suffix, listed
         case canBeDeleted = "can_be_deleted"
         case avatar, gender, pronoun, religion
+        case genderId = "gender_id"
+        case pronounId = "pronoun_id"
+        case religionId = "religion_id"
         case jobPosition = "job_position"
         case company
         case contactInformations = "contact_informations"
@@ -85,6 +91,9 @@ struct Contact: Identifiable, Codable, Hashable {
         gender        = try? c.decodeIfPresent(String.self, forKey: .gender)
         pronoun       = try? c.decodeIfPresent(String.self, forKey: .pronoun)
         religion      = try? c.decodeIfPresent(String.self, forKey: .religion)
+        genderId      = try? c.decodeIfPresent(Int.self, forKey: .genderId)
+        pronounId     = try? c.decodeIfPresent(Int.self, forKey: .pronounId)
+        religionId    = try? c.decodeIfPresent(Int.self, forKey: .religionId)
         jobPosition   = try? c.decodeIfPresent(String.self, forKey: .jobPosition)
         createdAt     = try? c.decodeIfPresent(String.self, forKey: .createdAt)
         updatedAt     = try? c.decodeIfPresent(String.self, forKey: .updatedAt)
@@ -125,6 +134,7 @@ struct Contact: Identifiable, Codable, Hashable {
         self.canBeDeleted = false
         self.avatar = avatar
         self.gender = nil; self.pronoun = nil; self.religion = nil; self.jobPosition = nil
+        self.genderId = nil; self.pronounId = nil; self.religionId = nil
         self.company = nil
         self.contactInformations = nil; self.importantDates = nil; self.addresses = nil
         self.notes = nil; self.labels = nil; self.groups = nil; self.relationships = nil
@@ -256,6 +266,7 @@ struct ContactRelationship: Identifiable, Codable, Hashable {
     let name: String?
     let avatar: ContactAvatar?
     let relationshipType: String?
+    let relationshipTypeId: Int?
     let group: String?
 
     var id: String { "\(contactId)-\(relationshipType ?? "")" }
@@ -264,6 +275,7 @@ struct ContactRelationship: Identifiable, Codable, Hashable {
         case contactId = "contact_id"
         case name, avatar, group
         case relationshipType = "relationship_type"
+        case relationshipTypeId = "relationship_type_id"
     }
 }
 
@@ -460,6 +472,17 @@ struct FamilyMember: Identifiable, Codable, Hashable {
 
 struct ContactResponse: Codable {
     let data: [Contact]
+    let meta: PageMeta?
+}
+
+struct PageMeta: Codable {
+    let currentPage: Int?
+    let lastPage: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case currentPage = "current_page"
+        case lastPage = "last_page"
+    }
 }
 
 struct ContactPayload: Codable {
@@ -467,15 +490,21 @@ struct ContactPayload: Codable {
     var lastName: String
     var middleName: String
     var nickname: String
+    var maidenName: String = ""
     var prefix: String
     var suffix: String
     var listed: Bool
+    var genderId: Int?
+    var pronounId: Int?
 
     enum CodingKeys: String, CodingKey {
         case firstName = "first_name"
         case lastName = "last_name"
         case middleName = "middle_name"
+        case maidenName = "maiden_name"
         case nickname, prefix, suffix, listed
+        case genderId = "gender_id"
+        case pronounId = "pronoun_id"
     }
 }
 
@@ -543,12 +572,113 @@ struct ReferenceData: Codable {
     let contactInformationTypes: [ReferenceType]
     let addressTypes: [ReferenceType]
     let importantDateTypes: [ReferenceType]
+    let genders: [ReferenceType]
+    let pronouns: [ReferenceType]
+    let religions: [ReferenceType]
+    let petCategories: [ReferenceType]
+    let currencies: [CurrencyRef]
+    let moodParameters: [MoodParameterRef]
+    let quickFactTemplates: [ReferenceType]
+    let relationshipTypes: [RelationshipTypeRef]
+    let groupTypes: [GroupTypeRef]
+    let lifeEventCategories: [LifeEventCategoryRef]
+    let labels: [ContactLabel]
+    let groups: [ContactGroup]
+    let companies: [ContactCompany]
+    let meContactId: String?
 
     enum CodingKeys: String, CodingKey {
         case contactInformationTypes = "contact_information_types"
         case addressTypes = "address_types"
         case importantDateTypes = "important_date_types"
+        case genders, pronouns, religions
+        case petCategories = "pet_categories"
+        case currencies
+        case moodParameters = "mood_parameters"
+        case quickFactTemplates = "quick_fact_templates"
+        case relationshipTypes = "relationship_types"
+        case groupTypes = "group_types"
+        case lifeEventCategories = "life_event_categories"
+        case labels, groups, companies
+        case meContactId = "me_contact_id"
     }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        func arr<T: Decodable>(_ k: CodingKeys, _ t: T.Type) -> [T] {
+            ((try? c.decodeIfPresent([T].self, forKey: k)) ?? []) ?? []
+        }
+        contactInformationTypes = arr(.contactInformationTypes, ReferenceType.self)
+        addressTypes = arr(.addressTypes, ReferenceType.self)
+        importantDateTypes = arr(.importantDateTypes, ReferenceType.self)
+        genders = arr(.genders, ReferenceType.self)
+        pronouns = arr(.pronouns, ReferenceType.self)
+        religions = arr(.religions, ReferenceType.self)
+        petCategories = arr(.petCategories, ReferenceType.self)
+        currencies = arr(.currencies, CurrencyRef.self)
+        moodParameters = arr(.moodParameters, MoodParameterRef.self)
+        quickFactTemplates = arr(.quickFactTemplates, ReferenceType.self)
+        relationshipTypes = arr(.relationshipTypes, RelationshipTypeRef.self)
+        groupTypes = arr(.groupTypes, GroupTypeRef.self)
+        lifeEventCategories = arr(.lifeEventCategories, LifeEventCategoryRef.self)
+        labels = arr(.labels, ContactLabel.self)
+        groups = arr(.groups, ContactGroup.self)
+        companies = arr(.companies, ContactCompany.self)
+        meContactId = try? c.decodeIfPresent(String.self, forKey: .meContactId)
+    }
+}
+
+struct CurrencyRef: Identifiable, Codable, Hashable {
+    let id: Int
+    let code: String
+}
+
+struct MoodParameterRef: Identifiable, Codable, Hashable {
+    let id: Int
+    let label: String?
+    let hexColor: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, label
+        case hexColor = "hex_color"
+    }
+}
+
+struct RelationshipTypeRef: Identifiable, Codable, Hashable {
+    let id: Int
+    let name: String?
+    let reverseName: String?
+    let group: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name
+        case reverseName = "reverse_name"
+        case group
+    }
+
+    var displayName: String { name ?? "Relationship" }
+}
+
+struct GroupRoleRef: Identifiable, Codable, Hashable {
+    let id: Int
+    let label: String?
+}
+
+struct GroupTypeRef: Identifiable, Codable, Hashable {
+    let id: Int
+    let label: String?
+    let roles: [GroupRoleRef]
+}
+
+struct LifeEventTypeRef: Identifiable, Codable, Hashable {
+    let id: Int
+    let label: String?
+}
+
+struct LifeEventCategoryRef: Identifiable, Codable, Hashable {
+    let id: Int
+    let label: String?
+    let types: [LifeEventTypeRef]
 }
 
 struct ReferenceType: Identifiable, Codable, Hashable {
@@ -563,4 +693,130 @@ struct ReferenceType: Identifiable, Codable, Hashable {
 
 struct ReferenceResponse: Codable {
     let data: ReferenceData
+}
+
+
+// MARK: - Additional module write payloads
+
+struct PetPayload: Encodable {
+    var petCategoryId: Int
+    var name: String?
+}
+
+struct GoalPayload: Encodable {
+    var name: String
+}
+
+struct QuickFactPayload: Encodable {
+    var vaultQuickFactsTemplateId: Int?
+    var content: String
+}
+
+struct MoodPayload: Encodable {
+    var moodTrackingParameterId: Int
+    var ratedAt: String
+    var note: String?
+    var numberOfHoursSlept: Int?
+}
+
+struct LoanPayload: Encodable {
+    var type: String
+    var name: String
+    var description: String?
+    var amountLent: Int?
+    var currencyId: Int?
+    var loanedAt: String?
+    var loanerIds: [String]
+    var loaneeIds: [String]
+}
+
+struct RelationshipPayload: Encodable {
+    var relationshipTypeId: Int
+    var otherContactId: String
+}
+
+struct LabelPayload: Encodable {
+    var labelId: Int?
+    var name: String?
+}
+
+struct GroupPayload: Encodable {
+    var groupId: Int?
+    var name: String?
+    var groupTypeId: Int?
+}
+
+struct ReligionPayload: Encodable {
+    var religionId: Int?
+}
+
+struct JobPayload: Encodable {
+    var jobPosition: String?
+    var companyId: Int?
+    var companyName: String?
+}
+
+struct LifeEventPayload: Encodable {
+    var lifeEventTypeId: Int
+    var summary: String?
+    var description: String?
+    var happenedAt: String
+    var costs: Int?
+    var currencyId: Int?
+}
+
+
+// MARK: - Vault dashboard models
+
+struct DashboardContact: Identifiable, Codable, Hashable {
+    let id: String
+    let name: String?
+    let avatar: ContactAvatar?
+}
+
+struct VaultTask: Identifiable, Codable, Hashable {
+    let id: Int
+    let label: String?
+    let description: String?
+    let completed: Bool
+    let dueAt: String?
+    let contact: DashboardContact
+
+    enum CodingKeys: String, CodingKey {
+        case id, label, description, completed
+        case dueAt = "due_at"
+        case contact
+    }
+}
+
+struct VaultReminderItem: Identifiable, Codable, Hashable {
+    let id: Int
+    let label: String?
+    let day: Int?
+    let month: Int?
+    let year: Int?
+    let type: String?
+    let contact: DashboardContact
+
+    var dateText: String {
+        [month.map { Calendar.current.monthSymbols[$0 - 1] }, day.map(String.init), year.map(String.init)]
+            .compactMap { $0 }.joined(separator: " ")
+    }
+}
+
+struct VaultPostItem: Identifiable, Codable, Hashable {
+    let id: Int
+    let title: String?
+    let writtenAt: String?
+    let journal: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, title
+        case writtenAt = "written_at"
+        case journal
+    }
+}
+
+struct DataResponse<T: Codable>: Codable {
+    let data: [T]
 }
